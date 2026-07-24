@@ -1,0 +1,21 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+*.tsbuildinfo
+
+# understudy runtime
+.understudy-cache/
+captures/
+*.local.yaml
+
+# os / editor
+.DS_Store
+*.log
+.idea/
+.vscode/
+
+# stray capture output at repo root
+/motion.yaml
+/*-model.yaml

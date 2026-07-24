@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>fixture: spring-overshoot</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      margin: 0;
+      min-height: 200vh;
+      font: 16px/1.5 system-ui, sans-serif;
+      background: #0b0b0f;
+      color: #e8e8ef;
+      display: grid;
+      place-items: start center;
+      padding-top: 18vh;
+    }
+    .card {
+      width: min(360px, 78vw);
+      padding: 28px 26px;
+      border-radius: 16px;
+      background: #16161f;
+      border: 1px solid #26263a;
+      /* initial offset; the rAF spring drives it home with overshoot */
+      transform: translateY(40px);
+      will-change: transform;
+    }
+    h1 { font-size: 14px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: #9a9ab5; margin: 0 0 8px; }
+    p { margin: 0; color: #c7c7d6; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="card" id="card">
+      <h1>spring-overshoot</h1>
+      <p>This card is driven home by a spring on requestAnimationFrame. It passes its
+         mark and settles back. DevTools cannot see this motion; understudy can.</p>
+    </div>
+  </main>
+
+  <script>
+    // A bouncy, clearly-underdamped spring. See fixtures/ground-truth.json.
+    const STIFFNESS = 200; // k
+    const DAMPING = 12;    // c
+    const MASS = 1;        // m
+
+    window.__GROUND_TRUTH__ = {
+      fixture: 'spring-overshoot',
+      stiffness: STIFFNESS,
+      damping: DAMPING,
+      mass: MASS,
+      property: 'translateY',
+      fromPx: 40,
+      toPx: 0,
+      expectedOvershoot: true,
+    };
+
+    function runSpring() {
+      const card = document.getElementById('card');
+      let p = 40;   // displacement from target (px)
+      let v = 0;    // velocity (px/s)
+      let last = null;
+      let acc = 0;
+      const STEP = 0.002; // fixed 2ms physics sub-step so realized k/c match the truth
+
+      function frame(now) {
+        if (last === null) { last = now; return requestAnimationFrame(frame); }
+        acc += Math.min((now - last) / 1000, 1 / 30); // clamp long frames for stability
+        last = now;
+
+        // Semi-implicit Euler on m*x'' = -k*x - c*x', advanced in fixed sub-steps.
+        while (acc >= STEP) {
+          const a = (-STIFFNESS * p - DAMPING * v) / MASS;
+          v += a * STEP;
+          p += v * STEP;
+          acc -= STEP;
+        }
+        card.style.transform = `translateY(${p}px)`;
+
+        if (Math.abs(p) > 0.05 || Math.abs(v) > 0.05) {
+          requestAnimationFrame(frame);
+        } else {
+          card.style.transform = 'translateY(0)';
+        }
+      }
+      requestAnimationFrame(frame);
+    }
+
+    if (document.readyState === 'complete') runSpring();
+    else window.addEventListener('load', runSpring, { once: true });
+  </script>
+</body>
+</html>

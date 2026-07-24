@@ -1,0 +1,50 @@
+{
+  "name": "understudy",
+  "version": "0.1.0",
+  "description": "Drives a real browser to measure a site's whole brand identity (color, typography, spacing, radii, and motion) and emit a design-model.yaml.",
+  "keywords": [
+    "brand",
+    "design-tokens",
+    "design-system",
+    "color-extraction",
+    "typography",
+    "motion",
+    "animation",
+    "playwright"
+  ],
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "understudy": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "scripts",
+    "SKILL.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "capture": "tsx src/index.ts capture",
+    "build": "tsc",
+    "prepare": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "tsc && node --test \"dist/**/*.test.js\"",
+    "test:unit": "tsx --test src/analyze/*.test.ts src/emit/*.test.ts src/validate.test.ts src/capture/assemble.test.ts",
+    "validate": "node scripts/validate.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.49.0",
+    "yaml": "^2.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.23.1",
+    "typescript": "^5.7.0"
+  },
+  "packageManager": "pnpm@11.15.1"
+}

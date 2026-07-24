@@ -1,0 +1,45 @@
+{
+  "_comment": "Canonical known-good values for each fixture page. Tests assert that the analyzers recover these within tolerance. If you change a fixture's motion, change the number here in the same commit — this file is the ground truth, the pages merely realize it.",
+  "stagger-120ms": {
+    "description": "List reveal with a fixed 120ms stagger between items, WAAPI-driven (Element.animate), one animate() call per item scheduled via setTimeout.",
+    "trigger": "load",
+    "count": 5,
+    "staggerMs": 120,
+    "itemDurationMs": 320,
+    "itemEasing": [0, 0, 0.58, 1],
+    "property": "translateY",
+    "fromPx": 12,
+    "toPx": 0,
+    "tolerance": { "staggerMs": 12, "durationMs": 24 }
+  },
+  "spring-overshoot": {
+    "description": "Bouncy spring on a card, requestAnimationFrame-driven, clearly overshoots its target (invisible to the DevTools Animations panel).",
+    "trigger": "load",
+    "stiffness": 200,
+    "damping": 12,
+    "mass": 1,
+    "property": "translateY",
+    "fromPx": 40,
+    "toPx": 0,
+    "expectedOvershoot": true,
+    "tolerance": { "stiffnessPct": 0.2, "dampingPct": 0.25 }
+  },
+  "scroll-parallax": {
+    "description": "Element translates at a fixed ratio of the scroll offset. Coupling is to scroll position, not to elapsed time.",
+    "trigger": "scroll",
+    "ratio": 0.35,
+    "property": "translateY",
+    "coupling": "scroll",
+    "tolerance": { "ratio": 0.03 }
+  },
+  "raf-imperative": {
+    "description": "requestAnimationFrame-driven tween with a known cubic-bezier easing. The whole point: DevTools cannot see this, understudy can, because it samples the moving property.",
+    "trigger": "load",
+    "durationMs": 600,
+    "easing": [0.33, 1, 0.68, 1],
+    "property": "translateY",
+    "fromPx": 24,
+    "toPx": 0,
+    "tolerance": { "durationMs": 40, "bezier": 0.08 }
+  }
+}

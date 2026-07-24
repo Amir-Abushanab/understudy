@@ -1,0 +1,43 @@
+name: ci
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Build
+        run: pnpm build
+
+      - name: Test
+        run: node --test "dist/**/*.test.js"
+
+      - name: Self-check the validator on a fixture capture
+        run: |
+          node dist/index.js capture "file://$PWD/fixtures/stagger-120ms/index.html" \
+            --settle 1500 -o /tmp/model.yaml
+          node scripts/validate.mjs /tmp/model.yaml

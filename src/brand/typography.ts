@@ -1,0 +1,99 @@
+/**
+ * Typography extraction. Recover the font families (ranked by how much of the
+ * page they set), the type size scale, and representative body / display / mono
+ * roles, all weighted by rendered area so the dominant copy defines "body" and
+ * the largest headings define "display".
+ */
+
+import type { StyleSnapshot, Typography, TypographyRole } from './types.js';
+
+const MONO_HINT = /mono|consol|menlo|courier|code|ibm plex mono|roboto mono|jetbrains/i;
+
+export function extractTypography(snapshots: StyleSnapshot[]): Typography {
+  const text = snapshots.filter((s) => s.hasText && s.fontSize > 0 && s.fontFamily);
+
+  // Families ranked by area.
+  const famArea = new Map<string, number>();
+  for (const s of text) famArea.set(s.fontFamily, (famArea.get(s.fontFamily) ?? 0) + s.area);
+  const families = [...famArea.entries()].sort((a, b) => b[1] - a[1]).map(([f]) => f);
+
+  // Type size scale.
+  const scale = sizeScale(text.map((s) => s.fontSize));
+
+  // Body: the dominant style among ordinary copy (roughly 12 to 20px).
+  const bodyPool = text.filter((s) => s.fontSize >= 12 && s.fontSize <= 20);
+  const body = representativeRole(bodyPool.length > 0 ? bodyPool : text);
+
+  // Display: the largest heading style that actually covers meaningful area.
+  const displayThreshold = Math.max(body.size * 1.5, 24);
+  const displayPool = text.filter((s) => s.fontSize >= displayThreshold);
+  const display = representativeRole(displayPool.length > 0 ? displayPool : text, /* preferLargest */ true);
+
+  // Mono: a monospace family if one is used.
+  const monoPool = text.filter((s) => MONO_HINT.test(s.fontFamily));
+  const mono = monoPool.length > 0 ? representativeRole(monoPool) : undefined;
+
+  const result: Typography = { display, body, families: families.slice(0, 6), scale, weights: weightScale(text) };
+  if (mono) result.mono = mono;
+  return result;
+}
+
+/** Distinct font weights in real use, ascending. */
+function weightScale(text: StyleSnapshot[]): number[] {
+  const counts = new Map<number, number>();
+  for (const s of text) counts.set(s.fontWeight, (counts.get(s.fontWeight) ?? 0) + 1);
+  const total = text.length || 1;
+  return [...counts.entries()]
+    .filter(([, c]) => c / total >= 0.01)
+    .map(([w]) => w)
+    .sort((a, b) => a - b);
+}
+
+/** The area-weighted most common style in a pool (optionally biased to the largest size). */
+function representativeRole(pool: StyleSnapshot[], preferLargest = false): TypographyRole {
+  if (pool.length === 0) {
+    return { family: 'sans-serif', size: 16, weight: 400, lineHeight: 24, letterSpacing: '0' };
+  }
+  // Group by (family, roundedSize, weight); weight by area (and size, if preferLargest).
+  const groups = new Map<string, { s: StyleSnapshot; weight: number }>();
+  for (const s of pool) {
+    const key = `${s.fontFamily}|${Math.round(s.fontSize)}|${s.fontWeight}`;
+    const w = s.area * (preferLargest ? s.fontSize : 1);
+    const existing = groups.get(key);
+    if (existing) existing.weight += w;
+    else groups.set(key, { s, weight: w });
+  }
+  const best = [...groups.values()].sort((a, b) => b.weight - a.weight)[0].s;
+  return {
+    family: best.fontFamily,
+    size: Math.round(best.fontSize),
+    weight: best.fontWeight,
+    lineHeight: best.lineHeight > 0 ? round(best.lineHeight / best.fontSize, 2) : 0,
+    letterSpacing: best.letterSpacing,
+  };
+}
+
+/** Cluster font sizes into an ascending, deduped scale (merging within 1px). */
+function sizeScale(sizes: number[]): number[] {
+  const counts = new Map<number, number>();
+  for (const s of sizes) {
+    const r = Math.round(s);
+    if (r > 0) counts.set(r, (counts.get(r) ?? 0) + 1);
+  }
+  const total = sizes.length || 1;
+  // Keep sizes used by at least 1% of text, then merge near-equal.
+  const kept = [...counts.entries()]
+    .filter(([, c]) => c / total >= 0.01)
+    .map(([size]) => size)
+    .sort((a, b) => a - b);
+  const merged: number[] = [];
+  for (const size of kept) {
+    if (merged.length === 0 || size - merged[merged.length - 1] > 1) merged.push(size);
+  }
+  return merged;
+}
+
+function round(v: number, places: number): number {
+  const f = 10 ** places;
+  return Math.round(v * f) / f;
+}

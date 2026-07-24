@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>fixture: raf-imperative</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      margin: 0;
+      min-height: 200vh;
+      font: 16px/1.5 system-ui, sans-serif;
+      background: #0b0b0f;
+      color: #e8e8ef;
+      display: grid;
+      place-items: start center;
+      padding-top: 18vh;
+    }
+    .card {
+      width: min(400px, 80vw);
+      padding: 28px 26px;
+      border-radius: 16px;
+      background: #16161f;
+      border: 1px solid #26263a;
+      opacity: 0;
+      transform: translateY(24px);
+      will-change: transform, opacity;
+    }
+    h1 { font-size: 14px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: #9a9ab5; margin: 0 0 8px; }
+    p { margin: 0; color: #c7c7d6; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="card" id="card">
+      <h1>raf-imperative</h1>
+      <p>A hand-rolled requestAnimationFrame tween with an easeOutCubic curve. No
+         CSS transition, no Element.animate. This is where premium brand motion
+         lives, and where the DevTools Animations panel goes blind.</p>
+    </div>
+  </main>
+
+  <script>
+    const DURATION_MS = 600;
+    const FROM_Y = 24;
+    const TO_Y = 0;
+    // easeOutCubic == cubic-bezier(0.33, 1, 0.68, 1)
+    const EASE = [0.33, 1, 0.68, 1];
+
+    window.__GROUND_TRUTH__ = {
+      fixture: 'raf-imperative',
+      durationMs: DURATION_MS,
+      easing: EASE,
+      property: 'translateY',
+      fromPx: FROM_Y,
+      toPx: TO_Y,
+    };
+
+    // Standard cubic-bezier easing solver (WebKit UnitBezier style): invert X(s)=t
+    // via Newton with a bisection fallback, then read Y(s).
+    function makeBezier(x1, y1, x2, y2) {
+      const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;
+      const cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+      const sampleX = (s) => ((ax * s + bx) * s + cx) * s;
+      const sampleY = (s) => ((ay * s + by) * s + cy) * s;
+      const sampleDX = (s) => (3 * ax * s + 2 * bx) * s + cx;
+      function solveX(x) {
+        let s = x;
+        for (let i = 0; i < 8; i++) {
+          const d = sampleX(s) - x;
+          if (Math.abs(d) < 1e-6) return s;
+          const dx = sampleDX(s);
+          if (Math.abs(dx) < 1e-6) break;
+          s -= d / dx;
+        }
+        let lo = 0, hi = 1, t = x;
+        for (let i = 0; i < 32; i++) {
+          const xs = sampleX(t);
+          if (Math.abs(xs - x) < 1e-6) break;
+          if (x > xs) lo = t; else hi = t;
+          t = (lo + hi) / 2;
+        }
+        return t;
+      }
+      return (t) => (t <= 0 ? 0 : t >= 1 ? 1 : sampleY(solveX(t)));
+    }
+
+    function run() {
+      const card = document.getElementById('card');
+      const ease = makeBezier(EASE[0], EASE[1], EASE[2], EASE[3]);
+      let start = null;
+      function frame(now) {
+        if (start === null) start = now;
+        const t = Math.min((now - start) / DURATION_MS, 1);
+        const e = ease(t);
+        card.style.transform = 'translateY(' + (FROM_Y + (TO_Y - FROM_Y) * e) + 'px)';
+        card.style.opacity = String(e);
+        if (t < 1) requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    }
+
+    if (document.readyState === 'complete') run();
+    else window.addEventListener('load', run, { once: true });
+  </script>
+</body>
+</html>

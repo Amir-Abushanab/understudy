@@ -1,0 +1,13 @@
+# pnpm 11+ reads package settings from here, not the package.json "pnpm" field.
+#
+# pnpm blocks dependency build/install scripts by default. Playwright's install
+# script downloads browser binaries; allow it so `pnpm install` provisions a
+# browser. If your pnpm ignores this key, run the browser install manually:
+#
+#   pnpm exec playwright install chromium
+#
+allowBuilds:
+  playwright: true
+  playwright-core: true
+  # esbuild backs tsx (dev-only), used by `pnpm dev` to run TS without a build.
+  esbuild: true

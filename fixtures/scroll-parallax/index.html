@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>fixture: scroll-parallax</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      margin: 0;
+      min-height: 320vh; /* generous scroll room */
+      font: 16px/1.5 system-ui, sans-serif;
+      background: #0b0b0f;
+      color: #e8e8ef;
+    }
+    .stage { position: sticky; top: 0; height: 100vh; overflow: hidden; display: grid; place-items: center; }
+    .layer {
+      width: min(520px, 84vw);
+      padding: 40px 32px;
+      border-radius: 20px;
+      background: #16161f;
+      border: 1px solid #26263a;
+      will-change: transform;
+    }
+    h1 { font-size: 14px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: #9a9ab5; margin: 0 0 8px; }
+    p { margin: 0; color: #c7c7d6; }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <div class="layer" id="layer">
+      <h1>scroll-parallax</h1>
+      <p>This layer is coupled to the scroll offset, not to elapsed time. It moves
+         0.35px for every 1px scrolled. The analyzer must regress against scrollY,
+         not fit a time curve.</p>
+    </div>
+  </div>
+
+  <script>
+    const RATIO = 0.35;
+
+    window.__GROUND_TRUTH__ = {
+      fixture: 'scroll-parallax',
+      ratio: RATIO,
+      property: 'translateY',
+      coupling: 'scroll',
+    };
+
+    const layer = document.getElementById('layer');
+    let ticking = false;
+
+    function update() {
+      // translateY tracks scroll position at a fixed ratio -> the coupling signal.
+      layer.style.transform = 'translateY(' + (window.scrollY * RATIO) + 'px)';
+      ticking = false;
+    }
+
+    window.addEventListener('scroll', () => {
+      if (!ticking) { ticking = true; requestAnimationFrame(update); }
+    }, { passive: true });
+
+    update();
+  </script>
+</body>
+</html>
