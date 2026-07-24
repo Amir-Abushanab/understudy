@@ -17,6 +17,10 @@ export interface ColorResult {
   dominance: number;
 }
 
+/** Browser default link, visited, and active colors; presence signals unstyled
+ * links, not a brand accent. */
+const DEFAULT_LINK_COLORS = new Set(['#0000ee', '#0000ff', '#551a8b', '#ff0000']);
+
 export function parseColor(value: string): Rgb | null {
   if (!value) return null;
   const v = value.trim();
@@ -108,11 +112,21 @@ export function extractColors(snapshots: StyleSnapshot[]): ColorResult {
   }
   const bgRanked = bgArea.ranked();
   const background = bgRanked[0]?.key ?? '#ffffff';
-  const surface = bgRanked.find((e) => e.key !== background)?.key ?? background;
   const dominance = totalBgArea > 0 ? (bgRanked[0]?.weight ?? 0) / totalBgArea : 0;
 
   const bgRgb = parseColor(background) ?? { r: 255, g: 255, b: 255, a: 1 };
-  const mode: Mode = luminance(bgRgb) < 0.4 ? 'dark' : 'light';
+  const bgLum = luminance(bgRgb);
+  const mode: Mode = bgLum < 0.4 ? 'dark' : 'light';
+
+  // Surface: a subtle elevation from the page background, so it must be nearly
+  // neutral and close to the background's luminance, not a large saturated section
+  // or an opposite-luminance band (a black footer on a white page).
+  const surface =
+    bgRanked.find((e) => {
+      if (e.key === background) return false;
+      const c = parseColor(e.key);
+      return c !== null && chroma(c) < 60 && Math.abs(luminance(c) - bgLum) <= 0.35;
+    })?.key ?? background;
 
   // Text colors by area, excluding the background color itself.
   const textArea = weightedByKey();
@@ -128,7 +142,6 @@ export function extractColors(snapshots: StyleSnapshot[]): ColorResult {
   // contrast, most readable). text2 is the most-used color that is clearly more
   // muted than text1, so a near-duplicate second shade is not mistaken for a
   // secondary; if none exists, text2 collapses to text1.
-  const bgLum = luminance(bgRgb);
   const effLum = (hex: string): number => luminance(composite(parseColor(hex) ?? bgRgb, bgRgb));
   const textCandidates = textArea
     .ranked()
@@ -154,12 +167,17 @@ export function extractColors(snapshots: StyleSnapshot[]): ColorResult {
     ] as const) {
       if (boost === 0) continue;
       const c = parseColor(raw);
-      if (c && isChromatic(c)) accentWeight.add(colorToken(c), s.area * boost);
+      if (!c || !isChromatic(c)) continue;
+      const key = colorToken(c);
+      // Skip the browser default link/visited colors: unstyled links are not a
+      // brand choice, and they otherwise masquerade as the accent.
+      if (!DEFAULT_LINK_COLORS.has(key)) accentWeight.add(key, s.area * boost);
     }
     // Gradient backgrounds carry brand accent color for gradient-forward brands,
     // but cap the area so one giant hero cannot swamp solid button/link accents.
     for (const c of gradientColors(s.backgroundImage)) {
-      if (isChromatic(c)) accentWeight.add(colorToken(c), Math.min(s.area, 3000) * 1.2);
+      const key = colorToken(c);
+      if (isChromatic(c) && !DEFAULT_LINK_COLORS.has(key)) accentWeight.add(key, Math.min(s.area, 3000) * 1.2);
     }
   }
   const accent = accentWeight.ranked()[0]?.key ?? text1;
@@ -177,7 +195,8 @@ export function extractColors(snapshots: StyleSnapshot[]): ColorResult {
     const contrast = contrastRatio(luminance(composite(c, bgRgb)), bgLum);
     if (contrast >= 1.05 && contrast <= 3) borderWeight.add(colorToken(c), s.area || 1);
   }
-  const border = borderWeight.ranked()[0]?.key ?? surface;
+  const border =
+    borderWeight.ranked()[0]?.key ?? (surface !== background ? surface : subtleDivider(text1));
 
   return { mode, colors: { background, surface, text1, text2, accent, border }, dominance: round(dominance, 3) };
 }
@@ -187,6 +206,13 @@ export function extractColors(snapshots: StyleSnapshot[]): ColorResult {
 interface Weighted {
   add(key: string, weight: number): void;
   ranked(): { key: string; weight: number }[];
+}
+
+/** A faint divider derived from the primary text, for pages with no real borders
+ * and no distinct surface (so the fallback is a visible hairline, not the bg). */
+function subtleDivider(text1: string): string {
+  const c = parseColor(text1);
+  return c ? `rgba(${Math.round(c.r)}, ${Math.round(c.g)}, ${Math.round(c.b)}, 0.12)` : text1;
 }
 
 /** Extract every color stop from a gradient background-image string. */

@@ -81,11 +81,11 @@ export function collectSafeTargets(page: Page, kind: 'hover' | 'click', max: num
  * request to a different origin is aborted. No-op for file:// captures.
  */
 export async function installOffOriginGuard(page: Page, targetUrl: string): Promise<void> {
-  let origin: string;
+  let targetDomain: string;
   try {
     const u = new URL(targetUrl);
     if (u.protocol === 'file:') return;
-    origin = u.origin;
+    targetDomain = registrableDomain(u.hostname);
   } catch {
     return;
   }
@@ -93,14 +93,22 @@ export async function installOffOriginGuard(page: Page, targetUrl: string): Prom
     const req = route.request();
     try {
       if (req.isNavigationRequest() && req.frame() === page.mainFrame()) {
+        // Allow the same registrable domain (a brand's www / app / marketing host
+        // are the same brand); only a genuinely different domain is off-limits.
         const u = new URL(req.url());
-        if (u.origin !== origin && req.url() !== targetUrl) return route.abort();
+        if (registrableDomain(u.hostname) !== targetDomain && req.url() !== targetUrl) return route.abort();
       }
     } catch {
       /* fall through to continue */
     }
     return route.continue();
   });
+}
+
+/** eTLD+1 approximation: the last two labels of the hostname. Good enough to keep
+ * www / subdomain redirects on-brand while blocking cross-domain navigation. */
+function registrableDomain(hostname: string): string {
+  return hostname.split('.').slice(-2).join('.');
 }
 
 /**
