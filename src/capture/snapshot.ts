@@ -3,28 +3,28 @@
  * style values every brand analyzer needs. Runs in the page and returns plain
  * records (style + geometry only, never text or selectors).
  *
- * This is the non-motion half of a capture: understudy reads the *computed*
- * brand values directly, which is more accurate than inferring them from a
- * screenshot, especially for CSS-in-JS with hashed class names.
+ * The walk pierces open shadow roots and same-origin iframes, so web-component
+ * and embed-heavy sites are not silently under-sampled. Alongside the element
+ * snapshot, we read the @font-face rules (the actual brand font assets) and a few
+ * page-health signals used to detect bot/challenge pages.
  */
 
 import type { Page } from 'playwright';
-import type { StyleSnapshot } from '../brand/types.js';
+import type { StyleSnapshot, FontFaceRule, PageSignals } from '../brand/types.js';
 
-const MAX_ELEMENTS = 5000;
+const MAX_ELEMENTS = 6000;
 
 export function snapshotStyles(page: Page): Promise<StyleSnapshot[]> {
   return page.evaluate((max) => {
     const out: StyleSnapshot[] = [];
-    const all = document.querySelectorAll('*');
-    for (let i = 0; i < all.length && out.length < max; i++) {
-      const el = all[i];
+
+    const record = (el: Element): void => {
       const rect = el.getBoundingClientRect();
       const area = rect.width * rect.height;
-      if (area < 1) continue;
+      if (area < 1) return;
 
       const cs = getComputedStyle(el);
-      if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) continue;
+      if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return;
 
       let hasText = false;
       for (const node of Array.from(el.childNodes)) {
@@ -40,6 +40,8 @@ export function snapshotStyles(page: Page): Promise<StyleSnapshot[]> {
       out.push({
         tag,
         area,
+        width: Math.round(rect.width),
+        maxWidth: cs.maxWidth === 'none' ? 0 : parseFloat(cs.maxWidth) || 0,
         color: cs.color,
         background: cs.backgroundColor,
         borderColor: cs.borderTopColor,
@@ -55,12 +57,86 @@ export function snapshotStyles(page: Page): Promise<StyleSnapshot[]> {
         paddingLeft: parseFloat(cs.paddingLeft) || 0,
         marginTop: parseFloat(cs.marginTop) || 0,
         gap: parseFloat(cs.gap) || 0,
-        // Only gradients matter for accent recovery; skip images and cap length.
         backgroundImage: cs.backgroundImage.includes('gradient') ? cs.backgroundImage.slice(0, 400) : '',
         hasText,
         interactive: tag === 'a' || tag === 'button' || tag === 'input' || el.getAttribute('role') === 'button',
       });
-    }
+    };
+
+    const walk = (root: Document | ShadowRoot): void => {
+      const all = root.querySelectorAll('*');
+      for (let i = 0; i < all.length; i++) {
+        if (out.length >= max) return;
+        const el = all[i];
+        record(el);
+        if (el.shadowRoot) walk(el.shadowRoot); // open shadow DOM
+        if (el.tagName === 'IFRAME') {
+          try {
+            const doc = (el as HTMLIFrameElement).contentDocument;
+            if (doc) walk(doc); // same-origin iframe; cross-origin throws
+          } catch {
+            /* cross-origin frame, skip */
+          }
+        }
+      }
+    };
+
+    walk(document);
     return out;
   }, MAX_ELEMENTS);
+}
+
+/** Read @font-face rules from the page stylesheets: the real brand font assets. */
+export function snapshotFontFaces(page: Page): Promise<FontFaceRule[]> {
+  return page.evaluate(() => {
+    const faces: FontFaceRule[] = [];
+    for (const sheet of Array.from(document.styleSheets)) {
+      let rules: CSSRuleList | null = null;
+      try {
+        rules = sheet.cssRules;
+      } catch {
+        continue; // cross-origin stylesheet
+      }
+      if (!rules) continue;
+      for (const rule of Array.from(rules)) {
+        if (rule instanceof CSSFontFaceRule) {
+          const style = rule.style;
+          const rawSrc = style.getPropertyValue('src');
+          const url = /url\(\s*["']?([^"')]+)["']?\s*\)/.exec(rawSrc);
+          faces.push({
+            family: (style.getPropertyValue('font-family') || '').replace(/["']/g, '').trim(),
+            weight: style.getPropertyValue('font-weight') || '400',
+            style: style.getPropertyValue('font-style') || 'normal',
+            src: url ? new URL(url[1], sheet.href || location.href).href : '',
+          });
+        }
+      }
+    }
+    return faces;
+  });
+}
+
+/** Font file URLs the page actually loaded. Reads the resource timeline and
+ * preload links, so it captures cross-origin CDN fonts that CSSOM cannot. */
+export function fontFiles(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const urls = new Set<string>();
+    for (const entry of performance.getEntriesByType('resource')) {
+      if (/\.(woff2?|ttf|otf)(\?|$)/i.test(entry.name)) urls.add(entry.name);
+    }
+    for (const link of Array.from(document.querySelectorAll('link[rel="preload"][as="font"]'))) {
+      const href = (link as HTMLLinkElement).href;
+      if (href) urls.add(href);
+    }
+    return Array.from(urls).slice(0, 40);
+  });
+}
+
+/** Cheap page-health signals for bot/challenge detection. */
+export function pageSignals(page: Page): Promise<PageSignals> {
+  return page.evaluate(() => ({
+    elementCount: document.querySelectorAll('*').length,
+    title: document.title || '',
+    textLength: (document.body ? document.body.innerText : '').length,
+  }));
 }

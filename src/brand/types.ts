@@ -13,6 +13,9 @@ export interface StyleSnapshot {
   tag: string;
   /** Rendered area in px^2; dominant brand values come from large, frequent elements. */
   area: number;
+  /** Rendered width in px, and computed max-width (0 when `none`); for container tokens. */
+  width: number;
+  maxWidth: number;
   /** Computed text color (rgb/rgba string). */
   color: string;
   /** Computed background-color (rgb/rgba string). */
@@ -80,15 +83,49 @@ export interface Typography {
   scale: number[];
   /** Distinct font weights observed, ascending. */
   weights: number[];
+  /** The modular-scale ratio between adjacent sizes, when the scale is regular. */
+  scaleRatio?: number;
+  /** Roles whose size changed across viewports (fluid/responsive), min..max px. */
+  responsive?: Record<string, { min: number; max: number }>;
+  /** The actual @font-face assets (family, src URL, weight, style) from
+   * readable (same-origin) stylesheets. */
+  fontFaces: FontFaceRule[];
+  /** Font file URLs the page actually loaded (works cross-origin, unlike CSSOM). */
+  fontFiles?: string[];
+}
+
+/** An @font-face rule read from the page stylesheets: the actual brand font asset. */
+export interface FontFaceRule {
+  family: string;
+  weight: string;
+  style: string;
+  /** First source URL, absolute, or empty. */
+  src: string;
+}
+
+/** Cheap page-health signals used to detect bot/challenge or stripped pages. */
+export interface PageSignals {
+  elementCount: number;
+  title: string;
+  textLength: number;
 }
 
 /** Snapshots for brand extraction: one per forced color scheme, plus the site's
- * un-forced default background so the primary mode can be identified. */
+ * un-forced default background, the @font-face assets, and health signals. */
 export interface BrandInput {
   light: StyleSnapshot[];
   dark: StyleSnapshot[];
+  /** Light-scheme snapshot at a mobile viewport, for fluid/responsive type. */
+  mobile: StyleSnapshot[];
   defaultBackground: string;
+  fontFaces: FontFaceRule[];
+  fontFiles: string[];
+  /** Chromatic colors observed when hovering interactive elements. */
+  hoverAccents: string[];
+  signals: PageSignals;
 }
+
+export type StateRole = 'success' | 'warning' | 'error' | 'info';
 
 /** The measured brand model. `colors` carries one or both modes depending on
  * whether the site actually themes. */
@@ -96,15 +133,29 @@ export interface BrandModel {
   /** The site's primary (default) mode. */
   mode: Mode;
   colors: Partial<Record<Mode, ColorTokens>>;
+  /** The broader chromatic brand palette (top distinct accent-worthy colors). */
+  accents: string[];
+  /** Inferred semantic state colors, where present in the palette. */
+  states: Partial<Record<StateRole, string>>;
+  /** Hover accent variant, when a hover shift was observed. */
+  accentHover?: string;
   typography: Typography;
   /** Spacing scale in px, ascending, starting at 0. */
   spacing: number[];
   /** Radius scale in px, ascending. */
   radii: number[];
+  /** Distinct border widths in px, ascending. */
+  borderWidths: number[];
+  /** Content container max-widths in px, ascending. */
+  containers: number[];
   /** Distinct box-shadows, most-used first. */
   shadows: string[];
+  /** Signature gradient background-images, most-used first. */
+  gradients: string[];
   /** How many elements informed this model. */
   sampled: number;
+  /** True when the captured page looked like a bot/challenge or stripped page. */
+  challenged: boolean;
   /** 0..1 confidence in the extraction (sample size, palette coherence). */
   confidence: number;
 }

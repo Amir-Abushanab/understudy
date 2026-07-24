@@ -13,9 +13,9 @@
 import { chromium, type Browser, type Page } from 'playwright';
 import type { CapturePassName, CaptureLimitation, SiteCapture } from './types.js';
 import { instrumentBrowser } from './instrument.js';
-import { snapshotStyles } from './snapshot.js';
+import { snapshotStyles, snapshotFontFaces, fontFiles, pageSignals } from './snapshot.js';
 import { assembleCapture, type RawCaptureData } from './assemble.js';
-import { USER_AGENT_SUFFIX, installOffOriginGuard, isAllowedByRobots } from './safety.js';
+import { USER_AGENT_SUFFIX, installOffOriginGuard, isAllowedByRobots, collectSafeTargets } from './safety.js';
 import { runScrollPass } from './passes/scroll.js';
 import { runHoverPass } from './passes/hover.js';
 import { runClickPass } from './passes/click.js';
@@ -103,6 +103,10 @@ export async function captureSite(options: CaptureOptions): Promise<SiteCapture>
       const transparent = (c: string): boolean => !c || c === 'transparent' || /rgba?\([^)]*,\s*0\s*\)$/.test(c);
       return transparent(body) ? html : body;
     });
+
+    // Interaction-state colors: hover safe targets and note chromatic shifts.
+    const hoverAccents = await captureHoverAccents(page);
+
     await page.emulateMedia({ colorScheme: 'light' });
     await page.waitForTimeout(250);
     const light = await snapshotStyles(page);
@@ -110,11 +114,58 @@ export async function captureSite(options: CaptureOptions): Promise<SiteCapture>
     await page.waitForTimeout(250);
     const dark = await snapshotStyles(page);
 
+    const fontFaces = await snapshotFontFaces(page);
+    const fontFileUrls = await fontFiles(page);
+    const signals = await pageSignals(page);
+
+    // A mobile-width, light-scheme snapshot so responsive/fluid type is visible.
+    await page.emulateMedia({ colorScheme: 'light' });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(300);
+    const mobile = await snapshotStyles(page);
+
     const motion = assembleCapture(raw, { source: options.url, capturedAt, passes, limitations });
-    return { motion, styles: { light, dark, defaultBackground } };
+    return {
+      motion,
+      styles: { light, dark, mobile, defaultBackground, fontFaces, fontFiles: fontFileUrls, hoverAccents, signals },
+    };
   } finally {
     await browser.close();
   }
+}
+
+/** Hover a handful of safe interactive elements and record the resulting color at
+ * that point. Best-effort: wrapped so it never fails a capture. */
+async function captureHoverAccents(page: Page): Promise<string[]> {
+  const shifts: string[] = [];
+  try {
+    const targets = await collectSafeTargets(page, 'hover', 10);
+    for (const target of targets) {
+      const before = await colorAtPoint(page, target.x, target.y);
+      await page.mouse.move(target.x, target.y);
+      await page.waitForTimeout(110);
+      const after = await colorAtPoint(page, target.x, target.y);
+      await page.mouse.move(2, 2);
+      if (after && after !== before) shifts.push(after);
+    }
+  } catch {
+    /* best-effort; hover states are a bonus, not required */
+  }
+  return shifts;
+}
+
+function colorAtPoint(page: Page, x: number, y: number): Promise<string | null> {
+  return page.evaluate(
+    ({ x, y }) => {
+      const el = document.elementFromPoint(x, y);
+      if (!el) return null;
+      const cs = getComputedStyle(el);
+      const bg = cs.backgroundColor;
+      const transparent = bg === 'transparent' || bg === 'rgba(0, 0, 0, 0)' || /,\s*0\)\s*$/.test(bg);
+      return transparent ? cs.color : bg;
+    },
+    { x, y },
+  );
 }
 
 async function setPass(page: Page, name: CapturePassName): Promise<void> {

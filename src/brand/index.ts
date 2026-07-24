@@ -1,22 +1,24 @@
 /**
- * Brand assembler: forced-light and forced-dark computed-style snapshots -> the
- * measured BrandModel. Pure and browser-free, so it is unit-testable against
- * synthetic snapshots.
+ * Brand assembler: forced-light and forced-dark computed-style snapshots (plus
+ * font assets and page-health signals) -> the measured BrandModel. Pure and
+ * browser-free, so it is unit-testable against synthetic snapshots.
  *
  * The site's un-forced default background identifies the primary mode. If the
  * two forced snapshots produce meaningfully different backgrounds the site
  * themes, and both palettes are emitted; otherwise only the primary mode is.
  */
 
-import type { BrandModel, BrandInput, Mode, ColorTokens, Rgb } from './types.js';
-import { extractColors, luminance, parseColor } from './color.js';
+import type { BrandModel, BrandInput, Mode, ColorTokens, Rgb, PageSignals } from './types.js';
+import { extractColors, luminance, parseColor, classifyStates, isChromatic, colorToken } from './color.js';
 import { extractTypography } from './typography.js';
-import { spacingScale, radiusScale, shadowSet } from './scale.js';
+import type { Typography } from './types.js';
+import { spacingScale, radiusScale, shadowSet, gradientSet, containerScale, borderWidthScale } from './scale.js';
 
 export * from './types.js';
 
 const WHITE: Rgb = { r: 255, g: 255, b: 255, a: 1 };
 const BLACK: Rgb = { r: 0, g: 0, b: 0, a: 1 };
+const CHALLENGE = /just a moment|attention required|access denied|verify (you|your)|are you a (human|robot)|captcha|enable javascript|checking your browser/i;
 
 export function assembleBrand(input: BrandInput): BrandModel {
   const lightColors = extractColors(input.light);
@@ -29,8 +31,6 @@ export function assembleBrand(input: BrandInput): BrandModel {
   const mode: Mode =
     defaultRgb && defaultRgb.a > 0.5 ? (luminance(defaultRgb) < 0.4 ? 'dark' : 'light') : lightColors.mode;
 
-  // The primary snapshot (matching the site's default) drives the mode-independent
-  // dimensions (type, spacing, radii, shadows).
   const primarySnap = mode === 'dark' ? input.dark : input.light;
   const primaryColors = mode === 'dark' ? darkColors : lightColors;
 
@@ -47,21 +47,78 @@ export function assembleBrand(input: BrandInput): BrandModel {
     colors[mode] = primaryColors.colors;
   }
 
+  const challenged = isChallenged(input.signals, input.light.length);
+
+  const typography = extractTypography(primarySnap, input.fontFaces);
+  if (input.fontFiles.length > 0) typography.fontFiles = input.fontFiles;
+  if (input.mobile.length > 20) {
+    const responsive = detectResponsive(extractTypography(input.light), extractTypography(input.mobile));
+    if (responsive) typography.responsive = responsive;
+  }
+
+  const accentHover = dominantChromatic(input.hoverAccents);
+
   return {
     mode,
     colors,
-    typography: extractTypography(primarySnap),
+    accents: primaryColors.accents,
+    states: classifyStates(primaryColors.accents, primaryColors.colors.accent),
+    ...(accentHover ? { accentHover } : {}),
+    typography,
     spacing: spacingScale(primarySnap),
     radii: radiusScale(primarySnap),
+    borderWidths: borderWidthScale(primarySnap),
+    containers: containerScale(primarySnap),
     shadows: shadowSet(primarySnap),
+    gradients: gradientSet(primarySnap),
     sampled: primarySnap.length,
-    confidence: brandConfidence(primarySnap.length, primaryColors.dominance, primaryColors.colors.accent !== primaryColors.colors.text1),
+    challenged,
+    confidence: brandConfidence(
+      primarySnap.length,
+      primaryColors.dominance,
+      primaryColors.colors.accent !== primaryColors.colors.text1,
+      challenged,
+    ),
   };
 }
 
+/** Roles whose size changes between desktop and mobile are fluid/responsive. */
+function detectResponsive(desktop: Typography, mobile: Typography): Record<string, { min: number; max: number }> | undefined {
+  const out: Record<string, { min: number; max: number }> = {};
+  for (const roleKey of ['display', 'body'] as const) {
+    const d = desktop[roleKey].size;
+    const m = mobile[roleKey].size;
+    if (Math.abs(d - m) > 1) out[roleKey] = { min: Math.min(d, m), max: Math.max(d, m) };
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/** Most common genuinely chromatic color in a list (hover accent). */
+function dominantChromatic(colors: string[]): string | undefined {
+  const counts = new Map<string, number>();
+  for (const raw of colors) {
+    const rgb = parseColor(raw);
+    if (rgb && isChromatic(rgb)) {
+      const key = colorToken(rgb);
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+  }
+  const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+  return top ? top[0] : undefined;
+}
+
+/** A capture that landed on a bot/challenge or stripped page should not be
+ * trusted: too few elements, almost no text, or a known interstitial title. */
+function isChallenged(signals: PageSignals, sampleCount: number): boolean {
+  if (sampleCount < 60 || signals.textLength < 200) return true;
+  return CHALLENGE.test(signals.title);
+}
+
 /** Confidence in the extraction: more samples and a coherent, dominant palette
- * with a distinct accent read as more trustworthy. */
-function brandConfidence(sampled: number, dominance: number, distinctAccent: boolean): number {
+ * with a distinct accent read as more trustworthy; a challenge page reads as
+ * near-zero. */
+function brandConfidence(sampled: number, dominance: number, distinctAccent: boolean, challenged: boolean): number {
+  if (challenged) return 0.05;
   let c = 0.4;
   c += Math.min(0.3, (sampled / 2000) * 0.3);
   c += 0.2 * dominance;

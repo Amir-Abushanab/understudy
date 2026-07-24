@@ -11,7 +11,7 @@
 
 import { Document, isSeq } from 'yaml';
 import type { MotionModel } from '../analyze/model.js';
-import type { BrandModel, TypographyRole } from '../brand/types.js';
+import type { BrandModel, TypographyRole, FontFaceRule } from '../brand/types.js';
 import { spliceMotion } from './motion-yaml.js';
 
 export interface DesignModel {
@@ -40,18 +40,30 @@ export function emitDesignModel(design: DesignModel): string {
     primary_mode: brand.mode,
     confidence: { brand: brand.confidence, motion: design.motion.meta.confidence },
     colors: brand.colors,
+    ...(brand.accents.length > 0 ? { accents: brand.accents } : {}),
+    ...(Object.keys(brand.states).length > 0 ? { states: brand.states } : {}),
+    ...(brand.accentHover ? { accent_hover: brand.accentHover } : {}),
     typography: {
       families: brand.typography.families,
       scale: brand.typography.scale,
+      ...(brand.typography.scaleRatio ? { scale_ratio: brand.typography.scaleRatio } : {}),
+      ...(brand.typography.responsive ? { responsive: brand.typography.responsive } : {}),
       weights: brand.typography.weights,
       display: role(brand.typography.display),
       body: role(brand.typography.body),
       ...(brand.typography.mono ? { mono: role(brand.typography.mono) } : {}),
+      ...(brand.typography.fontFaces.length > 0 ? { fonts: brand.typography.fontFaces.map(fontFace) } : {}),
+      ...(brand.typography.fontFiles && brand.typography.fontFiles.length > 0
+        ? { font_files: brand.typography.fontFiles }
+        : {}),
     },
     spacing: brand.spacing,
     radii: brand.radii,
+    ...(brand.borderWidths.length > 0 ? { border_widths: brand.borderWidths } : {}),
+    ...(brand.containers.length > 0 ? { containers: brand.containers } : {}),
     ...(brand.shadows.length > 0 ? { shadows: brand.shadows } : {}),
-    observed: { sampled_elements: brand.sampled },
+    ...(brand.gradients.length > 0 ? { gradients: brand.gradients } : {}),
+    observed: { sampled_elements: brand.sampled, ...(brand.challenged ? { challenge_page: true } : {}) },
   };
 
   doc.contents = doc.createNode(brandBlock);
@@ -71,9 +83,19 @@ function role(r: TypographyRole): Record<string, unknown> {
   };
 }
 
+function fontFace(f: FontFaceRule): Record<string, unknown> {
+  const out: Record<string, unknown> = { family: f.family, weight: f.weight, style: f.style };
+  if (f.src) out.src = f.src;
+  return out;
+}
+
 /** Render the numeric/string scales inline for readability. */
 function styleBrandArrays(doc: Document): void {
-  for (const path of [['spacing'], ['radii'], ['typography', 'scale'], ['typography', 'weights'], ['typography', 'families']]) {
+  const paths = [
+    ['spacing'], ['radii'], ['border_widths'], ['containers'], ['accents'],
+    ['typography', 'scale'], ['typography', 'weights'], ['typography', 'families'],
+  ];
+  for (const path of paths) {
     const node = doc.getIn(path, true);
     if (isSeq(node)) node.flow = true;
   }

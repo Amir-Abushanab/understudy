@@ -134,6 +134,22 @@ function validateBrand(root: Dict, findings: Finding[]): void {
     }
   }
 
+  if (Array.isArray(root.accents)) {
+    root.accents.forEach((v, i) => {
+      if (typeof v !== 'string' || parseColor(v) === null) {
+        findings.push({ level: 'ERROR', check: 'brand', detail: `accents[${i}] is not a valid color: ${String(v)}` });
+      }
+    });
+  }
+
+  if (isDict(root.states)) {
+    for (const [role, v] of Object.entries(root.states)) {
+      if (typeof v !== 'string' || parseColor(v) === null) {
+        findings.push({ level: 'ERROR', check: 'brand', detail: `states.${role} is not a valid color: ${String(v)}` });
+      }
+    }
+  }
+
   const confidence = isDict(root.confidence) ? root.confidence.brand : undefined;
   if (confidence !== undefined && (typeof confidence !== 'number' || confidence < 0 || confidence > 1)) {
     findings.push({ level: 'ERROR', check: 'brand', detail: `confidence.brand must be a number in [0, 1]` });

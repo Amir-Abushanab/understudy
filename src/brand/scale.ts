@@ -42,6 +42,26 @@ export function shadowSet(snapshots: StyleSnapshot[]): string[] {
   return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([shadow]) => shadow);
 }
 
+/** Signature gradient background-images, most-used first. */
+export function gradientSet(snapshots: StyleSnapshot[]): string[] {
+  const counts = new Map<string, number>();
+  for (const s of snapshots) {
+    if (s.backgroundImage) counts.set(s.backgroundImage.trim(), (counts.get(s.backgroundImage.trim()) ?? 0) + 1);
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([g]) => g);
+}
+
+/** Content container max-widths in px, ascending: the site's layout measures. */
+export function containerScale(snapshots: StyleSnapshot[]): number[] {
+  const widths = snapshots.filter((s) => s.maxWidth >= 320 && s.maxWidth <= 1920).map((s) => s.maxWidth);
+  return commonValues(widths, { mergeWithin: 8, minShare: 0.005, cap: 6 });
+}
+
+/** Distinct border widths in px, ascending (e.g. [1, 2]). */
+export function borderWidthScale(snapshots: StyleSnapshot[]): number[] {
+  return commonValues(snapshots.map((s) => s.borderWidth), { mergeWithin: 0, minShare: 0.01, cap: 4 });
+}
+
 interface CommonOptions {
   mergeWithin: number;
   minShare: number;

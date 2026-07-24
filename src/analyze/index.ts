@@ -9,7 +9,7 @@
  * is the rigorous part; this file is the honest-glue part.
  */
 
-import type { CaptureResult, MotionEvent, ScrollSample } from '../capture/types.js';
+import type { CaptureResult, MotionEvent, ScrollSample, CapturePassName } from '../capture/types.js';
 import type {
   MotionModel,
   EasingToken,
@@ -78,8 +78,10 @@ export function analyze(capture: CaptureResult): MotionModel {
   const { easing, tokenOf: easingTokenOf } = buildEasingTokens(timedFits);
 
   // --- primitives.stagger --------------------------------------------------
-  const loadEvents = timedFits.map((f) => f.event).filter((e) => e.trigger === 'load');
-  const allClusters = recoverStagger(loadEvents);
+  // Staggers appear on load (hero sequences) and during scroll (reveals firing in
+  // quick succession); cluster both, and the time-gap grouping keeps them apart.
+  const staggerEvents = timedFits.map((f) => f.event).filter((e) => e.trigger === 'load' || e.trigger === 'scroll');
+  const allClusters = recoverStagger(staggerEvents);
   const confidentClusters = allClusters.filter((c) => c.confident);
   const staggerScale = quantizeScale(confidentClusters.map((c) => c.intervalMs), STAGGER_ANCHORS);
   const stagger = toStaggerTokens(staggerScale.scale);
@@ -328,7 +330,7 @@ function buildChoreography(
   semantic: Record<string, SemanticEntry>,
 ): Choreography[] {
   if (!cluster) return [];
-  const stepToken = semantic['modal-enter'] ? 'modal-enter' : null;
+  const stepToken = semantic['modal-enter'] ? 'modal-enter' : firstTimingSemantic(semantic);
   if (!stepToken) return [];
 
   const byId = new Map(events.map((e) => [e.id, e]));
@@ -354,7 +356,28 @@ function buildChoreography(
     return { target, delay: Math.round(e.startT - t0), token: stepToken };
   });
 
-  return [{ name: 'load-sequence', trigger: 'load', steps }];
+  const trigger = majorityTrigger(members);
+  return [{ name: trigger === 'load' ? 'load-sequence' : `${trigger}-sequence`, trigger, steps }];
+}
+
+/** The first semantic that carries timing (a real entrance, not scroll coupling). */
+function firstTimingSemantic(semantic: Record<string, SemanticEntry>): string | null {
+  for (const [name, entry] of Object.entries(semantic)) if (entry.duration !== undefined) return name;
+  return null;
+}
+
+function majorityTrigger(members: MotionEvent[]): CapturePassName {
+  const counts = new Map<CapturePassName, number>();
+  for (const m of members) counts.set(m.trigger, (counts.get(m.trigger) ?? 0) + 1);
+  let best: CapturePassName = 'load';
+  let bestCount = -1;
+  for (const [trigger, count] of counts) {
+    if (count > bestCount) {
+      bestCount = count;
+      best = trigger;
+    }
+  }
+  return best;
 }
 
 // --------------------------------------------------------------------------

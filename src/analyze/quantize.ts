@@ -13,6 +13,8 @@ export const DURATION_ANCHORS: Record<string, number> = {
   base: 240,
   slow: 420,
   deliberate: 700,
+  cinematic: 1000,
+  epic: 1500,
 };
 
 /** Canonical stagger anchors (§5). */

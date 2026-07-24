@@ -5,11 +5,11 @@
  * the largest headings define "display".
  */
 
-import type { StyleSnapshot, Typography, TypographyRole } from './types.js';
+import type { StyleSnapshot, Typography, TypographyRole, FontFaceRule } from './types.js';
 
 const MONO_HINT = /mono|consol|menlo|courier|code|ibm plex mono|roboto mono|jetbrains/i;
 
-export function extractTypography(snapshots: StyleSnapshot[]): Typography {
+export function extractTypography(snapshots: StyleSnapshot[], fontFaces: FontFaceRule[] = []): Typography {
   const text = snapshots.filter((s) => s.hasText && s.fontSize > 0 && s.fontFamily);
 
   // Families ranked by area.
@@ -33,9 +33,42 @@ export function extractTypography(snapshots: StyleSnapshot[]): Typography {
   const monoPool = text.filter((s) => MONO_HINT.test(s.fontFamily));
   const mono = monoPool.length > 0 ? representativeRole(monoPool) : undefined;
 
-  const result: Typography = { display, body, families: families.slice(0, 6), scale, weights: weightScale(text) };
+  const result: Typography = {
+    display,
+    body,
+    families: families.slice(0, 6),
+    scale,
+    weights: weightScale(text),
+    fontFaces: dedupeFaces(fontFaces),
+  };
+  const ratio = detectScaleRatio(scale);
+  if (ratio) result.scaleRatio = ratio;
   if (mono) result.mono = mono;
   return result;
+}
+
+/** Median ratio between adjacent type sizes: the modular scale, approximately. */
+function detectScaleRatio(scale: number[]): number | undefined {
+  if (scale.length < 3) return undefined;
+  const ratios: number[] = [];
+  for (let i = 1; i < scale.length; i++) if (scale[i - 1] > 0) ratios.push(scale[i] / scale[i - 1]);
+  ratios.sort((a, b) => a - b);
+  const median = ratios[Math.floor(ratios.length / 2)];
+  return median > 1 ? Math.round(median * 100) / 100 : undefined;
+}
+
+/** Deduplicate @font-face rules by family/weight/style, keeping the real assets. */
+function dedupeFaces(faces: FontFaceRule[]): FontFaceRule[] {
+  const seen = new Set<string>();
+  const out: FontFaceRule[] = [];
+  for (const f of faces) {
+    if (!f.family) continue;
+    const key = `${f.family}|${f.weight}|${f.style}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(f);
+  }
+  return out.slice(0, 24);
 }
 
 /** Distinct font weights in real use, ascending. */
