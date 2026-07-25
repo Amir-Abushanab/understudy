@@ -114,6 +114,12 @@ export function analyze(capture: CaptureResult): MotionModel {
     semantic['scroll-parallax'] = { coupling: 'scroll', ratio: round(ratio, 3) };
   }
 
+  // Reveal-on-scroll-enter: the common pattern where elements fade/rise in as
+  // they enter the viewport. This is a real, measurable signature even when it is
+  // not a single time-clustered stagger (which many sites, e.g. Linear, are not).
+  const scrollReveal = buildScrollReveal(timedFits, easingTokenOf, durTokenFor);
+  if (scrollReveal) semantic['scroll-reveal'] = scrollReveal.entry;
+
   // --- choreography --------------------------------------------------------
   const choreography = buildChoreography(staggerCluster, capture.events, semantic);
 
@@ -124,10 +130,12 @@ export function analyze(capture: CaptureResult): MotionModel {
   const verifiable = timedFits.filter((f) => f.event.declaredDuration !== undefined || f.event.declaredEasing !== undefined).length;
   const verified = timedFits.filter((f) => f.durationVerified || f.easingVerified).length;
   const crossNote = verifiable > 0 ? `cross-verified ${verified} of ${verifiable} motions against declared CSS or WAAPI timing` : null;
+  const revealNote = scrollReveal ? `scroll-reveal on ${scrollReveal.count} elements` : null;
+  const extraNote = [crossNote, revealNote].filter((n): n is string => n !== null).join('; ') || null;
   const observed = {
     samples: capture.totalSamples,
     rejected: capture.rejected,
-    notes: buildNotes(capture, crossNote),
+    notes: buildNotes(capture, extraNote),
   };
   const confidence = scoreConfidence(capture, timedFits, allClusters);
 
@@ -358,6 +366,33 @@ function buildChoreography(
 
   const trigger = majorityTrigger(members);
   return [{ name: trigger === 'load' ? 'load-sequence' : `${trigger}-sequence`, trigger, steps }];
+}
+
+/** Detect the reveal-on-scroll-enter pattern and characterize it: the median
+ * duration and dominant easing (as token references) and the median enter
+ * distance. Emitted like scroll-parallax, so it is honest about being a coupling
+ * signature rather than a fabricated time-stagger. */
+function buildScrollReveal(
+  fits: EventFit[],
+  easingTokenOf: (fit: EventFit) => string | null,
+  durTokenFor: (ms: number) => string | null,
+): { entry: SemanticEntry; count: number } | null {
+  const reveals = fits.filter((f) => f.event.trigger === 'scroll' && isReveal(f.event));
+  if (reveals.length < 3) return null;
+  const durToken = durTokenFor(median(reveals.map((f) => f.durationMs)));
+  const easingToken = modeBy(reveals.map((f) => easingTokenOf(f)).filter((n): n is string => n !== null));
+  if (!durToken || !easingToken) return null;
+  const entry: SemanticEntry = { duration: durToken, easing: easingToken };
+  const distances = reveals.filter((f) => f.event.property === 'translateY').map((f) => Math.abs(f.event.from - f.event.to));
+  if (distances.length > 0) entry.distance = Math.round(median(distances));
+  return { entry, count: reveals.length };
+}
+
+/** An entrance from hidden/offset to visible/rest: a fade-in or a rise-in. */
+function isReveal(e: MotionEvent): boolean {
+  if (e.property === 'opacity') return e.from < 0.4 && e.to > 0.6;
+  if (e.property === 'translateY') return Math.abs(e.from) > 4 && Math.abs(e.to) < 4;
+  return false;
 }
 
 /** The first semantic that carries timing (a real entrance, not scroll coupling). */

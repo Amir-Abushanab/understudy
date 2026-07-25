@@ -39,6 +39,10 @@ export interface StyleSnapshot {
   gap: number;
   /** background-image value, or empty; gradients here carry accent colors. */
   backgroundImage: string;
+  /** Computed fill/stroke for inline SVG (logos, icons); empty for HTML elements.
+   * Vector brand color lives here, invisible to background/text color. */
+  fill: string;
+  stroke: string;
   /** Element has a direct, non-empty text node. */
   hasText: boolean;
   /** Element is interactive (a/button/input/[role=button]); accent colors live here. */

@@ -153,8 +153,8 @@ export function classifyStates(accents: string[], accent: string): Partial<Recor
     if (!c || saturation(c) < 0.3) continue;
     const h = hue(c);
     if (!states.success && h >= 95 && h <= 165) states.success = hex;
-    else if (!states.warning && h >= 35 && h < 70) states.warning = hex;
-    else if (!states.error && (h < 18 || h >= 345)) states.error = hex;
+    else if (!states.warning && h >= 15 && h < 70) states.warning = hex;
+    else if (!states.error && (h < 15 || h >= 345)) states.error = hex;
     else if (!states.info && h >= 195 && h <= 250) states.info = hex;
   }
   return states;
@@ -251,6 +251,14 @@ export function extractColors(snapshots: StyleSnapshot[]): ColorResult {
     for (const c of gradientColors(s.backgroundImage)) {
       const key = colorToken(c);
       if (isChromatic(c) && !DEFAULT_LINK_COLORS.has(key)) accentWeight.add(key, Math.min(s.area, 3000) * 1.2);
+    }
+    // Inline SVG fill/stroke: vector brand color (logos, icons, illustrations)
+    // that background/text color cannot see. High signal, area-capped.
+    for (const raw of [s.fill, s.stroke]) {
+      const c = parseColor(raw);
+      if (c && isChromatic(c) && !DEFAULT_LINK_COLORS.has(colorToken(c))) {
+        accentWeight.add(colorToken(c), Math.min(s.area, 4000) * 2);
+      }
     }
   }
   const accentRanked = mergePalette(accentWeight.ranked());

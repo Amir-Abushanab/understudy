@@ -36,6 +36,7 @@ export function snapshotStyles(page: Page): Promise<StyleSnapshot[]> {
 
       const tag = el.tagName.toLowerCase();
       const family = (cs.fontFamily.split(',')[0] || '').replace(/["']/g, '').trim();
+      const isSvg = el.namespaceURI === 'http://www.w3.org/2000/svg';
 
       out.push({
         tag,
@@ -58,6 +59,8 @@ export function snapshotStyles(page: Page): Promise<StyleSnapshot[]> {
         marginTop: parseFloat(cs.marginTop) || 0,
         gap: parseFloat(cs.gap) || 0,
         backgroundImage: cs.backgroundImage.includes('gradient') ? cs.backgroundImage.slice(0, 400) : '',
+        fill: isSvg && cs.fill !== 'none' ? cs.fill : '',
+        stroke: isSvg && cs.stroke !== 'none' ? cs.stroke : '',
         hasText,
         interactive: tag === 'a' || tag === 'button' || tag === 'input' || el.getAttribute('role') === 'button',
       });

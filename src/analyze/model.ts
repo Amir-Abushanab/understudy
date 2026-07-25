@@ -55,6 +55,8 @@ export interface SemanticEntry {
   stagger?: string;
   coupling?: 'scroll';
   ratio?: number;
+  /** Enter distance in px for a scroll-reveal (a measured literal, like ratio). */
+  distance?: number;
 }
 
 export interface ChoreographyStep {
