@@ -30,6 +30,10 @@ export interface StyleSnapshot {
   lineHeight: number;
   /** Letter spacing as authored (e.g. `0`, `-0.02em`). */
   letterSpacing: string;
+  /** text-transform (`none`, `uppercase`, ...). */
+  textTransform: string;
+  /** font-style (`normal`, `italic`). */
+  fontStyle: string;
   radius: number;
   /** box-shadow string, or empty when `none`. */
   shadow: string;
@@ -75,12 +79,18 @@ export interface TypographyRole {
   weight: number;
   lineHeight: number;
   letterSpacing: string;
+  /** text-transform, when not `none` (e.g. `uppercase` for labels). */
+  transform?: string;
+  /** font-style, when not `normal` (e.g. `italic`). */
+  style?: string;
 }
 
 export interface Typography {
   display: TypographyRole;
   body: TypographyRole;
   mono?: TypographyRole;
+  /** The eyebrow/label style: small, often uppercased and letter-spaced. */
+  label?: TypographyRole;
   /** Every font family observed, most-used first. */
   families: string[];
   /** The recovered type size scale in px, ascending. */

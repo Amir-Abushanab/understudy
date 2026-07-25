@@ -52,6 +52,8 @@ export function snapshotStyles(page: Page): Promise<StyleSnapshot[]> {
         fontWeight: parseInt(cs.fontWeight, 10) || 400,
         lineHeight: cs.lineHeight === 'normal' ? 0 : parseFloat(cs.lineHeight) || 0,
         letterSpacing: cs.letterSpacing === 'normal' ? '0' : cs.letterSpacing,
+        textTransform: cs.textTransform || 'none',
+        fontStyle: cs.fontStyle || 'normal',
         radius: parseFloat(cs.borderTopLeftRadius) || 0,
         shadow: cs.boxShadow === 'none' ? '' : cs.boxShadow,
         paddingTop: parseFloat(cs.paddingTop) || 0,

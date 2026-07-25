@@ -19,6 +19,7 @@ export function toBrandReport(design: DesignModel): string {
   return [
     fontFaceStyle(brand),
     style(),
+    heroVarsCss(brand),
     `<main class="report">`,
     brandHero(design),
     metaBar(design),
@@ -36,18 +37,18 @@ function brandHero(design: DesignModel): string {
   const { brand } = design;
   const c = brand.colors[brand.mode];
   if (!c) return '';
-  const vars = [
-    `--b-bg:${esc(c.background)}`, `--b-fg:${esc(c.text1)}`, `--b-fg2:${esc(c.text2)}`,
-    `--b-accent:${esc(c.accent)}`, `--b-on-accent:${readableText(c.accent)}`, `--b-border:${esc(c.border)}`,
-    `--b-display:${cssFam(brand.typography.display.family)}`, `--b-display-w:${brand.typography.display.weight}`,
-  ].join(';');
+  const themed = Object.keys(brand.colors).length > 1;
   const logo = brand.logo ? logoMarkup(brand) : '';
   const grad = brand.gradients[0]
-    ? `<div class="bh-sig"><span class="bh-sig-band" style="background:${esc(brand.gradients[0])}"></span><span class="bh-sig-label mono">signature gradient</span></div>`
+    ? `<div class="bh-sig"><span class="bh-sig-band" style="background:${esc(brand.gradients[0])}"></span><span class="bh-sig-label mono">signature gradient${themed ? ' · theme-aware' : ''}</span></div>`
     : '';
+  // The label style, rendered as the eyebrow when the brand has one.
+  const eyebrow = brand.typography.label
+    ? `<span class="bh-eyebrow" style="letter-spacing:${brand.typography.label.letterSpacing};${brand.typography.label.transform ? `text-transform:${brand.typography.label.transform}` : ''}">measured brand identity</span>`
+    : `<span class="bh-eyebrow">measured brand identity</span>`;
   return `
-<header class="brand-hero" style="${vars}">
-  <div class="bh-top">${logo}<span class="bh-eyebrow">measured brand identity</span></div>
+<header class="brand-hero">
+  <div class="bh-top">${logo}${eyebrow}</div>
   <h1 class="bh-name">${esc(design.name)}</h1>
   <a class="bh-src" href="${esc(design.source)}">${esc(design.source)}</a>
   <div class="bh-cta">
@@ -57,6 +58,25 @@ function brandHero(design: DesignModel): string {
   </div>
   ${grad}
 </header>`;
+}
+
+/** Hero brand variables as CSS, so a themed brand's hero follows the viewer's
+ * light/dark theme, while a single-mode brand's hero stays fixed to its mode. */
+function heroVarsCss(brand: BrandModel): string {
+  const primary = brand.colors[brand.mode];
+  if (!primary) return '';
+  const disp = brand.typography.display;
+  const vars = (c: ColorTokens): string =>
+    `--b-bg:${c.background};--b-fg:${c.text1};--b-fg2:${c.text2};--b-accent:${c.accent};--b-on-accent:${readableText(c.accent)};--b-border:${c.border}`;
+  const rules = [`.brand-hero{${vars(primary)};--b-display:${cssFam(disp.family)};--b-display-w:${disp.weight}}`];
+  const { light, dark } = brand.colors;
+  if (light && dark) {
+    rules.push(`@media(prefers-color-scheme:dark){.brand-hero{${vars(dark)}}}`);
+    rules.push(`@media(prefers-color-scheme:light){.brand-hero{${vars(light)}}}`);
+    rules.push(`:root[data-theme="dark"] .brand-hero{${vars(dark)}}`);
+    rules.push(`:root[data-theme="light"] .brand-hero{${vars(light)}}`);
+  }
+  return `<style>${rules.join('')}</style>`;
 }
 
 /** Neutral instrument meta strip below the brand hero. */
@@ -152,13 +172,29 @@ function levelBadges(passes: string[]): string {
 
 function typography(brand: BrandModel): string {
   const t = brand.typography;
-  const specimen = (label: string, role: TypographyRole) =>
-    `<div class="spec"><div class="spec-head"><span class="mono dim">${label}</span><span class="mono">${esc(role.family)} · ${role.size}px · ${role.weight}</span></div>` +
-    `<div class="spec-line" style="font-family:${cssFam(role.family)};font-size:${Math.min(role.size, 56)}px;font-weight:${role.weight}">Ag ${esc(role.family)}</div></div>`;
-  const scale = t.scale.length ? `<div class="sub">scale${t.scaleRatio ? ` · ratio ${t.scaleRatio}` : ''}</div><div class="chips">${t.scale.map((s) => `<span class="pchip mono">${s}px</span>`).join('')}</div>` : '';
-  const weights = t.weights.length ? `<div class="sub">weights</div><div class="chips">${t.weights.map((w) => `<span class="pchip mono">${w}</span>`).join('')}</div>` : '';
+  const specs = [specimen('display', t.display), specimen('body', t.body), t.mono ? specimen('mono', t.mono) : '', t.label ? specimen('label', t.label) : ''].join('');
+  const ladder = t.weights.length > 1
+    ? `<div class="sub">weight ladder</div><div class="wladder">${t.weights.map((w) => `<div class="wrow"><span class="mono dim">${w}</span><span class="wsample" style="font-family:${cssFam(t.body.family)};font-weight:${w}">Grumpy wizards make toxic brew</span></div>`).join('')}</div>`
+    : '';
+  const scale = t.scale.length ? `<div class="sub">size scale${t.scaleRatio ? ` · ratio ${t.scaleRatio}` : ''}</div><div class="chips">${t.scale.map((s) => `<span class="pchip mono">${s}px</span>`).join('')}</div>` : '';
   const files = t.fontFiles && t.fontFiles.length ? `<div class="sub">font files</div><ul class="files mono">${t.fontFiles.slice(0, 6).map((f) => `<li>${esc(shortUrl(f))}</li>`).join('')}</ul>` : '';
-  return panel('Typography', specimen('display', t.display) + specimen('body', t.body) + (t.mono ? specimen('mono', t.mono) : '') + scale + weights + files);
+  return panel('Typography', specs + ladder + scale + files);
+}
+
+function specimen(label: string, role: TypographyRole): string {
+  const tracked = role.letterSpacing && role.letterSpacing !== '0';
+  const meta = [`${role.size}px`, `w${role.weight}`, role.lineHeight ? `lh ${role.lineHeight}` : '', tracked ? `ls ${role.letterSpacing}` : '', role.transform ?? '', role.style ?? '']
+    .filter(Boolean)
+    .join(' · ');
+  const css = [
+    `font-family:${cssFam(role.family)}`,
+    `font-size:${Math.min(role.size, 52)}px`,
+    `font-weight:${role.weight}`,
+    tracked ? `letter-spacing:${role.letterSpacing}` : '',
+    role.transform ? `text-transform:${role.transform}` : '',
+    role.style ? `font-style:${role.style}` : '',
+  ].filter(Boolean).join(';');
+  return `<div class="spec"><div class="spec-head"><span class="mono dim">${label}</span><span class="mono">${esc(role.family)} · ${esc(meta)}</span></div><div class="spec-line" style="${css}">Ag ${esc(role.family)}</div></div>`;
 }
 
 function scales(brand: BrandModel): string {
@@ -294,7 +330,11 @@ h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute
 .badge.ok{background:var(--ok)}.badge.warn{background:var(--warn)}.badge.bad{background:var(--bad)}
 .spec{padding:14px 0;border-bottom:1px solid var(--line)}
 .spec-head{display:flex;justify-content:space-between;gap:12px;font-size:11px;margin-bottom:8px}
-.spec-line{line-height:1.1;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spec-line{line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wladder{display:flex;flex-direction:column;gap:9px;margin-bottom:4px}
+.wrow{display:flex;align-items:baseline;gap:14px}
+.wrow .mono{width:34px;flex:none;font-size:11px}
+.wsample{font-size:19px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .files{margin:6px 0 0;padding-left:16px;font-size:11px;color:var(--muted)}
 .bars{display:flex;flex-direction:column;gap:5px}
 .bar{display:flex;align-items:center;gap:10px;font-size:11px}

@@ -13,7 +13,7 @@ function snap(p: Partial<StyleSnapshot>): StyleSnapshot {
   return {
     tag: 'div', area: 100, width: 100, maxWidth: 0, color: 'rgb(20, 20, 20)', background: 'rgba(0, 0, 0, 0)',
     borderColor: 'rgb(0, 0, 0)', borderWidth: 0, fontFamily: 'Inter', fontSize: 16, fontWeight: 400,
-    lineHeight: 24, letterSpacing: '0', radius: 0, shadow: '', paddingTop: 0, paddingLeft: 0,
+    lineHeight: 24, letterSpacing: '0', textTransform: 'none', fontStyle: 'normal', radius: 0, shadow: '', paddingTop: 0, paddingLeft: 0,
     marginTop: 0, gap: 0, backgroundImage: '', fill: '', stroke: '', hasText: false, interactive: false, ...p,
   };
 }

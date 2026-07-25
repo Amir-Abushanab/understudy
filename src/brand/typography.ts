@@ -33,6 +33,12 @@ export function extractTypography(snapshots: StyleSnapshot[], fontFaces: FontFac
   const monoPool = text.filter((s) => MONO_HINT.test(s.fontFamily));
   const mono = monoPool.length > 0 ? representativeRole(monoPool) : undefined;
 
+  // Label / eyebrow: small text that is uppercased or positively letter-spaced.
+  const labelPool = text.filter(
+    (s) => s.fontSize <= body.size && (s.textTransform === 'uppercase' || isTracked(s.letterSpacing)),
+  );
+  const label = labelPool.length >= 2 ? representativeRole(labelPool) : undefined;
+
   const result: Typography = {
     display,
     body,
@@ -44,7 +50,15 @@ export function extractTypography(snapshots: StyleSnapshot[], fontFaces: FontFac
   const ratio = detectScaleRatio(scale);
   if (ratio) result.scaleRatio = ratio;
   if (mono) result.mono = mono;
+  if (label) result.label = label;
   return result;
+}
+
+/** Positive (spread-out) letter spacing, the tracking a label style uses. */
+function isTracked(letterSpacing: string): boolean {
+  if (!letterSpacing || letterSpacing === '0' || letterSpacing === 'normal') return false;
+  const n = parseFloat(letterSpacing);
+  return Number.isFinite(n) && n > 0;
 }
 
 /** Median ratio between adjacent type sizes: the modular scale, approximately. */
@@ -97,13 +111,16 @@ function representativeRole(pool: StyleSnapshot[], preferLargest = false): Typog
     else groups.set(key, { s, weight: w });
   }
   const best = [...groups.values()].sort((a, b) => b.weight - a.weight)[0].s;
-  return {
+  const role: TypographyRole = {
     family: best.fontFamily,
     size: Math.round(best.fontSize),
     weight: best.fontWeight,
     lineHeight: best.lineHeight > 0 ? round(best.lineHeight / best.fontSize, 2) : 0,
     letterSpacing: best.letterSpacing,
   };
+  if (best.textTransform && best.textTransform !== 'none') role.transform = best.textTransform;
+  if (best.fontStyle && best.fontStyle !== 'normal') role.style = best.fontStyle;
+  return role;
 }
 
 /** Cluster font sizes into an ascending, deduped scale (merging within 1px). */

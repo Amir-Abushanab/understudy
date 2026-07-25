@@ -52,6 +52,7 @@ export function emitDesignModel(design: DesignModel): string {
       display: role(brand.typography.display),
       body: role(brand.typography.body),
       ...(brand.typography.mono ? { mono: role(brand.typography.mono) } : {}),
+      ...(brand.typography.label ? { label: role(brand.typography.label) } : {}),
       ...(brand.typography.fontFaces.length > 0 ? { fonts: brand.typography.fontFaces.map(fontFace) } : {}),
       ...(brand.typography.fontFiles && brand.typography.fontFiles.length > 0
         ? { font_files: brand.typography.fontFiles }
@@ -77,13 +78,16 @@ export function emitDesignModel(design: DesignModel): string {
 }
 
 function role(r: TypographyRole): Record<string, unknown> {
-  return {
+  const out: Record<string, unknown> = {
     family: r.family,
     size: `${r.size}px`,
     weight: r.weight,
     line_height: r.lineHeight > 0 ? r.lineHeight : 'normal',
     letter_spacing: r.letterSpacing,
   };
+  if (r.transform) out.transform = r.transform;
+  if (r.style) out.style = r.style;
+  return out;
 }
 
 function fontFace(f: FontFaceRule): Record<string, unknown> {
