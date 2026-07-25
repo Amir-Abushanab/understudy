@@ -8,10 +8,10 @@
  * themes, and both palettes are emitted; otherwise only the primary mode is.
  */
 
-import type { BrandModel, BrandInput, Mode, ColorTokens, Rgb, PageSignals } from './types.js';
+import type { BrandModel, BrandInput, Mode, ColorTokens, Rgb, PageSignals, ContrastCheck, BrandProvenance, Typography } from './types.js';
 import { extractColors, luminance, parseColor, classifyStates, isChromatic, colorToken } from './color.js';
 import { extractTypography } from './typography.js';
-import type { Typography } from './types.js';
+import { auditContrast } from './accessibility.js';
 import { spacingScale, radiusScale, shadowSet, gradientSet, containerScale, borderWidthScale } from './scale.js';
 
 export * from './types.js';
@@ -57,12 +57,23 @@ export function assembleBrand(input: BrandInput): BrandModel {
   }
 
   const accentHover = dominantChromatic(input.hoverAccents);
+  const states = classifyStates(primaryColors.accents, primaryColors.colors.accent);
+
+  const accessibility: Partial<Record<Mode, ContrastCheck[]>> = {};
+  const provenance: Record<string, BrandProvenance> = {};
+  for (const key of Object.keys(colors) as Mode[]) {
+    const tokens = colors[key];
+    if (!tokens) continue;
+    accessibility[key] = auditContrast(tokens);
+    if ((key === 'dark' ? darkColors : lightColors).borderInferred) provenance[`colors.${key}.border`] = 'inferred';
+  }
+  if (Object.keys(states).length > 0) provenance.states = 'inferred';
 
   return {
     mode,
     colors,
     accents: primaryColors.accents,
-    states: classifyStates(primaryColors.accents, primaryColors.colors.accent),
+    states,
     ...(accentHover ? { accentHover } : {}),
     typography,
     spacing: spacingScale(primarySnap),
@@ -71,6 +82,9 @@ export function assembleBrand(input: BrandInput): BrandModel {
     containers: containerScale(primarySnap),
     shadows: shadowSet(primarySnap),
     gradients: gradientSet(primarySnap),
+    ...(input.logo ? { logo: input.logo } : {}),
+    accessibility,
+    provenance,
     sampled: primarySnap.length,
     challenged,
     confidence: brandConfidence(

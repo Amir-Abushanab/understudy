@@ -63,6 +63,9 @@ export function emitDesignModel(design: DesignModel): string {
     ...(brand.containers.length > 0 ? { containers: brand.containers } : {}),
     ...(brand.shadows.length > 0 ? { shadows: brand.shadows } : {}),
     ...(brand.gradients.length > 0 ? { gradients: brand.gradients } : {}),
+    ...(brand.logo ? { logo: brand.logo } : {}),
+    ...(Object.values(brand.accessibility).some((a) => a && a.length > 0) ? { accessibility: brand.accessibility } : {}),
+    ...(Object.keys(brand.provenance).length > 0 ? { provenance: brand.provenance } : {}),
     observed: { sampled_elements: brand.sampled, ...(brand.challenged ? { challenge_page: true } : {}) },
   };
 

@@ -17,6 +17,8 @@ export interface ColorResult {
   accents: string[];
   /** Fraction of sampled area covered by the dominant background (palette coherence). */
   dominance: number;
+  /** The border was synthesized/inherited, not read from a real border color. */
+  borderInferred: boolean;
 }
 
 /** Browser default link, visited, and active colors; presence signals unstyled
@@ -278,10 +280,16 @@ export function extractColors(snapshots: StyleSnapshot[]): ColorResult {
     const contrast = contrastRatio(luminance(composite(c, bgRgb)), bgLum);
     if (contrast >= 1.05 && contrast <= 3) borderWeight.add(colorToken(c), s.area || 1);
   }
-  const border =
-    mergePalette(borderWeight.ranked())[0]?.key ?? (surface !== background ? surface : subtleDivider(text1));
+  const measuredBorder = mergePalette(borderWeight.ranked())[0]?.key;
+  const border = measuredBorder ?? (surface !== background ? surface : subtleDivider(text1));
 
-  return { mode, colors: { background, surface, text1, text2, accent, border }, accents, dominance: round(dominance, 3) };
+  return {
+    mode,
+    colors: { background, surface, text1, text2, accent, border },
+    accents,
+    dominance: round(dominance, 3),
+    borderInferred: measuredBorder === undefined,
+  };
 }
 
 // --------------------------------------------------------------------------

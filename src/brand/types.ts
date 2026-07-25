@@ -126,10 +126,33 @@ export interface BrandInput {
   fontFiles: string[];
   /** Chromatic colors observed when hovering interactive elements. */
   hoverAccents: string[];
+  /** The captured brand mark, when found. */
+  logo?: LogoAsset;
   signals: PageSignals;
 }
 
 export type StateRole = 'success' | 'warning' | 'error' | 'info';
+
+/** A WCAG contrast check for one color pair. */
+export interface ContrastCheck {
+  pair: string;
+  ratio: number;
+  /** Levels met, from {AA-large, AA, AAA}. */
+  passes: string[];
+}
+
+/** The captured brand mark. */
+export interface LogoAsset {
+  kind: 'svg' | 'img';
+  /** Absolute image URL, for raster/svg-file logos. */
+  src?: string;
+  /** Inline SVG markup, for vector logos. */
+  svg?: string;
+  alt?: string;
+}
+
+/** Where a token came from: measured directly, or inferred/synthesized. */
+export type BrandProvenance = 'measured' | 'inferred';
 
 /** The measured brand model. `colors` carries one or both modes depending on
  * whether the site actually themes. */
@@ -156,6 +179,12 @@ export interface BrandModel {
   shadows: string[];
   /** Signature gradient background-images, most-used first. */
   gradients: string[];
+  /** The captured brand mark, when found. */
+  logo?: LogoAsset;
+  /** WCAG contrast checks for the key pairs, per mode. */
+  accessibility: Partial<Record<Mode, ContrastCheck[]>>;
+  /** Provenance for tokens that were inferred/synthesized rather than measured. */
+  provenance: Record<string, BrandProvenance>;
   /** How many elements informed this model. */
   sampled: number;
   /** True when the captured page looked like a bot/challenge or stripped page. */

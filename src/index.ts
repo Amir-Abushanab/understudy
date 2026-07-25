@@ -18,7 +18,7 @@ import { captureSite } from './capture/session.js';
 import { analyze } from './analyze/index.js';
 import { assembleBrand } from './brand/index.js';
 import { emitMotionYaml } from './emit/motion-yaml.js';
-import { emitTokensCss } from './emit/tokens-css.js';
+import { toBrandCss, toTailwindConfig, toDesignTokens } from './emit/tokens.js';
 import { emitDesignModel, nameFromUrl, type DesignModel } from './emit/design-model.js';
 import { mergeIntoDesignModel } from './emit/merge.js';
 import { validateDesignModel, hasErrors, formatReport } from './validate.js';
@@ -35,7 +35,9 @@ capture options:
   -o, --output <file>     write the design-model to <file> (default: stdout)
       --motion-only       emit just the motion block, not the full brand model
       --merge <file>      splice the motion block into an existing design-model.yaml, in place
-      --css <file>        also write motion CSS custom properties to <file>
+      --css <file>        also write brand + motion CSS custom properties to <file>
+      --tailwind <file>   also write a Tailwind theme.extend config to <file>
+      --dtcg <file>       also write W3C Design Tokens (DTCG) JSON to <file>
       --passes <list>     comma-separated subset of: scroll,hover,click (default: all)
       --window <ms>       capture window budget in ms (default: 8000)
       --settle <ms>       settle delay between steps in ms (default: 350)
@@ -52,6 +54,8 @@ async function main(): Promise<void> {
       'motion-only': { type: 'boolean', default: false },
       merge: { type: 'string' },
       css: { type: 'string' },
+      tailwind: { type: 'string' },
+      dtcg: { type: 'string' },
       passes: { type: 'string' },
       window: { type: 'string' },
       settle: { type: 'string' },
@@ -123,8 +127,16 @@ async function main(): Promise<void> {
   }
 
   if (values.css) {
-    writeFileSync(values.css, emitTokensCss(model));
+    writeFileSync(values.css, toBrandCss(design));
     console.error(`understudy: wrote ${values.css}`);
+  }
+  if (values.tailwind) {
+    writeFileSync(values.tailwind, toTailwindConfig(design));
+    console.error(`understudy: wrote ${values.tailwind}`);
+  }
+  if (values.dtcg) {
+    writeFileSync(values.dtcg, JSON.stringify(toDesignTokens(design), null, 2) + '\n');
+    console.error(`understudy: wrote ${values.dtcg}`);
   }
 
   // Validate the motion block within our own output; never let a malformed block out silently.

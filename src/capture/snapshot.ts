@@ -10,7 +10,7 @@
  */
 
 import type { Page } from 'playwright';
-import type { StyleSnapshot, FontFaceRule, PageSignals } from '../brand/types.js';
+import type { StyleSnapshot, FontFaceRule, PageSignals, LogoAsset } from '../brand/types.js';
 
 const MAX_ELEMENTS = 6000;
 
@@ -132,6 +132,42 @@ export function fontFiles(page: Page): Promise<string[]> {
       if (href) urls.add(href);
     }
     return Array.from(urls).slice(0, 40);
+  });
+}
+
+/** Find the brand mark: the home-linking header element containing an SVG or img. */
+export function captureLogo(page: Page): Promise<LogoAsset | null> {
+  return page.evaluate(() => {
+    const links = Array.from(document.querySelectorAll('a'));
+    const candidates = links.filter((a) => {
+      try {
+        const home = a.href === location.origin || a.href === location.origin + '/' || new URL(a.href).pathname === '/';
+        const named = /logo|brand|home/i.test(`${a.className} ${a.getAttribute('aria-label') || ''}`);
+        return (home || named) && (a.querySelector('svg') !== null || a.querySelector('img') !== null);
+      } catch {
+        return false;
+      }
+    });
+    // Prefer the topmost, leftmost candidate (the header mark).
+    candidates.sort((a, b) => {
+      const ra = a.getBoundingClientRect();
+      const rb = b.getBoundingClientRect();
+      return ra.top - rb.top || ra.left - rb.left;
+    });
+    const el = candidates[0];
+    if (!el) return null;
+
+    const svg = el.querySelector('svg');
+    if (svg) {
+      const markup = svg.outerHTML.slice(0, 4000);
+      const alt = el.getAttribute('aria-label');
+      return alt ? { kind: 'svg' as const, svg: markup, alt } : { kind: 'svg' as const, svg: markup };
+    }
+    const img = el.querySelector('img');
+    if (img) {
+      return img.alt ? { kind: 'img' as const, src: img.src, alt: img.alt } : { kind: 'img' as const, src: img.src };
+    }
+    return null;
   });
 }
 
