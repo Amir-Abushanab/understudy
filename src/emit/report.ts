@@ -12,35 +12,99 @@
 import type { DesignModel } from './design-model.js';
 import type { BrandModel, ColorTokens, Mode, ContrastCheck, TypographyRole } from '../brand/types.js';
 import type { MotionModel } from '../analyze/model.js';
+import { parseColor, luminance } from '../brand/color.js';
 
 export function toBrandReport(design: DesignModel): string {
   const { brand, motion } = design;
-  return [style(), `<main class="report">`, header(design), palette(brand), accessibility(brand), typography(brand), scales(brand), elevation(brand), gradients(brand), motionSection(motion), footer(design), `</main>`].join('\n');
+  return [
+    fontFaceStyle(brand),
+    style(),
+    `<main class="report">`,
+    brandHero(design),
+    metaBar(design),
+    palette(brand), accessibility(brand), typography(brand), scales(brand), elevation(brand), gradients(brand), motionSection(motion),
+    footer(design),
+    `</main>`,
+  ].join('\n');
 }
 
 // --------------------------------------------------------------------------
 
-function header(design: DesignModel): string {
-  const { brand, motion } = design;
+/** The hero wears the captured brand: its background, accent, display font, and
+ * logo, so the report opens by rendering the extraction as itself. */
+function brandHero(design: DesignModel): string {
+  const { brand } = design;
+  const c = brand.colors[brand.mode];
+  if (!c) return '';
+  const vars = [
+    `--b-bg:${esc(c.background)}`, `--b-fg:${esc(c.text1)}`, `--b-fg2:${esc(c.text2)}`,
+    `--b-accent:${esc(c.accent)}`, `--b-on-accent:${readableText(c.accent)}`, `--b-border:${esc(c.border)}`,
+    `--b-display:${cssFam(brand.typography.display.family)}`, `--b-display-w:${brand.typography.display.weight}`,
+  ].join(';');
   const logo = brand.logo ? logoMarkup(brand) : '';
+  const grad = brand.gradients[0]
+    ? `<div class="bh-sig"><span class="bh-sig-band" style="background:${esc(brand.gradients[0])}"></span><span class="bh-sig-label mono">signature gradient</span></div>`
+    : '';
   return `
-<header class="head">
-  <div class="head-id">
-    ${logo}
-    <div>
-      <div class="eyebrow">measured brand identity</div>
-      <h1>${esc(design.name)}</h1>
-      <a class="src" href="${esc(design.source)}">${esc(design.source)}</a>
-    </div>
+<header class="brand-hero" style="${vars}">
+  <div class="bh-top">${logo}<span class="bh-eyebrow">measured brand identity</span></div>
+  <h1 class="bh-name">${esc(design.name)}</h1>
+  <a class="bh-src" href="${esc(design.source)}">${esc(design.source)}</a>
+  <div class="bh-cta">
+    <span class="bh-btn">Primary action</span>
+    <span class="bh-btn ghost">Secondary</span>
+    <span class="bh-swatch mono">${esc(c.accent)}</span>
   </div>
-  <dl class="meta">
-    <div><dt>mode</dt><dd class="mono">${brand.mode}${Object.keys(brand.colors).length > 1 ? ' + ' + otherMode(brand.mode) : ''}</dd></div>
-    <div><dt>brand conf.</dt><dd class="mono">${brand.confidence.toFixed(2)}</dd></div>
-    <div><dt>motion conf.</dt><dd class="mono">${motion.meta.confidence.toFixed(2)}</dd></div>
-    <div><dt>archetype</dt><dd class="mono">${motion.personality.archetype}</dd></div>
-    <div><dt>sampled</dt><dd class="mono">${brand.sampled.toLocaleString('en-US')}</dd></div>
-  </dl>
+  ${grad}
 </header>`;
+}
+
+/** Neutral instrument meta strip below the brand hero. */
+function metaBar(design: DesignModel): string {
+  const { brand, motion } = design;
+  const item = (label: string, value: string, warn = false) =>
+    `<div><span class="mk">${label}</span><span class="mono"${warn ? ' style="color:var(--warn)"' : ''}>${value}</span></div>`;
+  return `<div class="metabar">
+    ${item('mode', brand.mode + (Object.keys(brand.colors).length > 1 ? ' + ' + otherMode(brand.mode) : ''))}
+    ${item('brand conf', brand.confidence.toFixed(2))}
+    ${item('motion conf', motion.meta.confidence.toFixed(2))}
+    ${item('archetype', motion.personality.archetype)}
+    ${item('sampled', brand.sampled.toLocaleString('en-US'))}
+    ${brand.challenged ? item('warning', 'challenge page', true) : ''}
+  </div>`;
+}
+
+/** Inject @font-face for the brand fonts so the real face loads where the CSP
+ * allows external URLs (local report file). In the sandboxed Artifact the CSP
+ * blocks them and the fallback stack renders; harmless either way. */
+function fontFaceStyle(brand: BrandModel): string {
+  const rules: string[] = [];
+  const have = new Set<string>();
+  for (const f of brand.typography.fontFaces) {
+    if (!f.src || !f.family) continue;
+    rules.push(`@font-face{font-family:"${f.family}";src:url("${f.src}");font-weight:${f.weight};font-style:${f.style};font-display:swap}`);
+    have.add(norm(f.family));
+  }
+  const files = brand.typography.fontFiles ?? [];
+  for (const role of [brand.typography.display, brand.typography.body]) {
+    const key = norm(role.family);
+    if (have.has(key) || key.length < 4) continue;
+    const token = key.slice(0, 5);
+    const match = files.find((u) => norm(u).includes(token));
+    if (match) {
+      rules.push(`@font-face{font-family:"${role.family}";src:url("${match}");font-weight:${role.weight};font-display:swap}`);
+      have.add(key);
+    }
+  }
+  return rules.length > 0 ? `<style>${rules.join('')}</style>` : '';
+}
+
+function readableText(hex: string): string {
+  const c = parseColor(hex);
+  return c && luminance(c) > 0.5 ? '#111318' : '#ffffff';
+}
+function norm(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
 function palette(brand: BrandModel): string {
@@ -196,12 +260,23 @@ function style(): string {
 h1{font-size:34px;margin:2px 0 4px;letter-spacing:-.02em;text-wrap:balance}
 h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 16px;font-weight:600}
 .src{color:var(--muted);text-decoration:none;font-size:13px}.src:hover{color:var(--accent)}
-.head{display:flex;flex-wrap:wrap;gap:24px;justify-content:space-between;align-items:flex-start;padding-bottom:28px;border-bottom:1px solid var(--line)}
-.head-id{display:flex;gap:16px;align-items:center}
-.logo img{height:32px;width:auto;max-width:160px;display:block}
-.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:14px 20px;margin:0}
-.meta dt{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-.meta dd{margin:2px 0 0;font-size:15px}
+.logo img{height:30px;width:auto;max-width:150px;display:block}
+.brand-hero{position:relative;margin-top:4px;padding:44px 40px;border-radius:14px;background:var(--b-bg);color:var(--b-fg);border:1px solid var(--b-border);overflow:hidden}
+.bh-top{display:flex;align-items:center;gap:14px;margin-bottom:20px}
+.bh-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--b-accent)}
+.bh-name{font-family:var(--b-display);font-weight:var(--b-display-w);font-size:clamp(38px,7vw,68px);line-height:1.02;letter-spacing:-.02em;margin:0 0 10px;color:var(--b-fg);text-wrap:balance}
+.bh-src{color:var(--b-fg2);text-decoration:none;font-size:14px}.bh-src:hover{color:var(--b-accent)}
+.bh-cta{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:26px}
+.bh-btn{background:var(--b-accent);color:var(--b-on-accent);padding:10px 20px;border-radius:9px;font-weight:600;font-size:14px}
+.bh-btn.ghost{background:transparent;color:var(--b-fg);border:1px solid var(--b-accent)}
+.bh-swatch{color:var(--b-accent);font-size:12px;padding:6px 11px;border:1px solid var(--b-accent);border-radius:999px}
+.bh-sig{display:flex;align-items:center;gap:10px;margin-top:26px}
+.bh-sig-band{height:18px;width:180px;border-radius:5px;display:block;border:1px solid rgba(128,128,128,.25)}
+.bh-sig-label{font-size:10px;color:var(--b-fg2);letter-spacing:.1em;text-transform:uppercase}
+.metabar{display:flex;flex-wrap:wrap;gap:12px 26px;padding:18px 6px 0}
+.metabar>div{display:flex;flex-direction:column;gap:2px}
+.mk{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.metabar .mono{font-size:15px}
 .panel{margin-top:36px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:24px}
 .mode-block{margin-bottom:16px}.mode-tag{font-size:11px;color:var(--muted);margin-bottom:8px}
 .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
