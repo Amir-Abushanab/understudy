@@ -20,6 +20,7 @@ import { assembleBrand } from './brand/index.js';
 import { emitMotionYaml } from './emit/motion-yaml.js';
 import { toBrandCss, toTailwindConfig, toDesignTokens } from './emit/tokens.js';
 import { emitDesignModel, nameFromUrl, type DesignModel } from './emit/design-model.js';
+import { toBrandReport } from './emit/report.js';
 import { mergeIntoDesignModel } from './emit/merge.js';
 import { validateDesignModel, hasErrors, formatReport } from './validate.js';
 
@@ -38,6 +39,7 @@ capture options:
       --css <file>        also write brand + motion CSS custom properties to <file>
       --tailwind <file>   also write a Tailwind theme.extend config to <file>
       --dtcg <file>       also write W3C Design Tokens (DTCG) JSON to <file>
+      --report <file>     also write a visual brand report (standalone HTML) to <file>
       --passes <list>     comma-separated subset of: scroll,hover,click (default: all)
       --window <ms>       capture window budget in ms (default: 8000)
       --settle <ms>       settle delay between steps in ms (default: 350)
@@ -56,6 +58,7 @@ async function main(): Promise<void> {
       css: { type: 'string' },
       tailwind: { type: 'string' },
       dtcg: { type: 'string' },
+      report: { type: 'string' },
       passes: { type: 'string' },
       window: { type: 'string' },
       settle: { type: 'string' },
@@ -137,6 +140,11 @@ async function main(): Promise<void> {
   if (values.dtcg) {
     writeFileSync(values.dtcg, JSON.stringify(toDesignTokens(design), null, 2) + '\n');
     console.error(`understudy: wrote ${values.dtcg}`);
+  }
+  if (values.report) {
+    const html = `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${nameFromUrl(url)} - brand report</title></head><body>\n${toBrandReport(design)}\n</body></html>\n`;
+    writeFileSync(values.report, html);
+    console.error(`understudy: wrote ${values.report}`);
   }
 
   // Validate the motion block within our own output; never let a malformed block out silently.
