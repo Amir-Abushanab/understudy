@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>fixture: brand-known</title>
+  <style>
+    /* Ground truth for the brand extractor. See fixtures/ground-truth.json. */
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #ffffff;                 /* background */
+      color: #1a1a1a;                      /* text1 (primary) */
+      font-family: 'Fixture Sans', sans-serif;  /* body family */
+      font-size: 16px;                     /* body size */
+      font-weight: 400;
+      line-height: 1.5;
+    }
+    main { max-width: 1200px; margin: 0 auto; padding: 32px; }  /* container 1200 */
+    h1 {
+      font-family: 'Fixture Serif', serif; /* display family */
+      font-size: 48px;                     /* display size */
+      font-weight: 700;
+      margin: 0 0 16px;
+      color: #1a1a1a;
+    }
+    .muted { color: #6b7280; }             /* text2 (muted) */
+    p { margin: 0 0 16px; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }  /* spacing 16 */
+    .card {
+      background: #f9fafb;                 /* surface */
+      border: 1px solid #e5e7eb;           /* border, 1px */
+      border-radius: 8px;                  /* radius 8 */
+      padding: 24px;                       /* spacing 24 */
+    }
+    .cta {
+      display: inline-block;
+      background: #7c3aed;                 /* accent (violet) */
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;                   /* spacing 8, 16 */
+      font-weight: 700;
+      margin-right: 8px;
+    }
+    .hero { padding: 32px; margin-bottom: 32px; background: linear-gradient(135deg, #7c3aed, #10b981); border-radius: 8px; }
+    .hero h1, .hero p { color: #ffffff; }
+  </style>
+</head>
+<body>
+  <main>
+    <header style="display:flex; gap:16px; align-items:center; padding: 8px 0 24px;">
+      <a href="/" aria-label="Fixture logo">
+        <!-- brand mark: violet + green -->
+        <svg width="120" height="28" viewBox="0 0 120 28" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="14" cy="14" r="12" fill="#7c3aed" />
+          <rect x="32" y="8" width="80" height="12" rx="4" fill="#10b981" />
+        </svg>
+      </a>
+    </header>
+
+    <section class="hero">
+      <h1>A measured brand</h1>
+      <p>Known colors, type, spacing, and a logo, so the extractor can be checked against ground truth.</p>
+      <a class="cta" href="#a">Get started</a>
+      <a class="cta" href="#b">Learn more</a>
+    </section>
+
+    <div class="grid">
+      <div class="card">
+        <h1 style="font-size:24px; margin-bottom:8px;">Color</h1>
+        <p>Background white, primary text near-black, and a violet accent on the buttons.</p>
+        <p class="muted">Secondary text uses a muted gray for lower emphasis.</p>
+        <a class="cta" href="#c">Action</a>
+      </div>
+      <div class="card">
+        <h1 style="font-size:24px; margin-bottom:8px;">Type</h1>
+        <p>The body is a sixteen pixel sans; the display is a serif at forty-eight pixels, bold.</p>
+        <p class="muted">Two weights, regular and bold, span the type scale.</p>
+        <a class="cta" href="#d">Action</a>
+      </div>
+      <div class="card">
+        <h1 style="font-size:24px; margin-bottom:8px;">Space</h1>
+        <p>Padding and gaps follow an eight pixel grid across cards and controls.</p>
+        <p class="muted">Radii are a consistent eight pixels on cards and buttons alike.</p>
+        <a class="cta" href="#e">Action</a>
+      </div>
+    </div>
+
+    <section style="padding-top:32px;">
+      <p>This paragraph and the ones below add enough real text and enough elements that the
+         capture reads as a genuine page rather than a stripped or challenge page.</p>
+      <p class="muted">Every value on this page is intentional and recorded in ground-truth.json,
+         so a regression in color, type, spacing, radius, or logo extraction fails a test.</p>
+      <p>Violet is the accent, green is the secondary brand color and reads as a success state,
+         the surface is a faint gray, and borders are a light hairline.</p>
+      <p class="muted">The gradient in the hero pairs the two brand colors, and the header carries
+         the logo as inline SVG so the mark itself is captured.</p>
+    </section>
+  </main>
+</body>
+</html>

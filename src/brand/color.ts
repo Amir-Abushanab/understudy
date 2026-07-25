@@ -186,7 +186,10 @@ export function extractColors(snapshots: StyleSnapshot[]): ColorResult {
       totalBgArea += s.area;
     }
   }
-  const bgRanked = mergePalette(bgArea.ranked());
+  // Do NOT perceptually dedup backgrounds: a surface is a deliberately subtle
+  // step from the page background (often below the just-noticeable difference),
+  // and merging would collapse it into the background.
+  const bgRanked = bgArea.ranked();
   const background = bgRanked[0]?.key ?? '#ffffff';
   const dominance = totalBgArea > 0 ? (bgRanked[0]?.weight ?? 0) / totalBgArea : 0;
 

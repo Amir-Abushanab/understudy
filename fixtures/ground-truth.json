@@ -41,5 +41,22 @@
     "fromPx": 24,
     "toPx": 0,
     "tolerance": { "durationMs": 40, "bezier": 0.08 }
+  },
+  "brand-known": {
+    "description": "Known brand values for the full color/type/spacing/logo pipeline.",
+    "mode": "light",
+    "background": "#ffffff",
+    "text1": "#1a1a1a",
+    "text2": "#6b7280",
+    "accent": "#7c3aed",
+    "surface": "#f9fafb",
+    "border": "#e5e7eb",
+    "bodyFamily": "Fixture Sans",
+    "displayFamily": "Fixture Serif",
+    "bodySize": 16,
+    "displaySize": 48,
+    "spacing": [8, 16, 24, 32],
+    "radius": 8,
+    "successColor": "#10b981"
   }
 }
