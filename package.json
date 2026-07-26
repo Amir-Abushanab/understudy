@@ -1,7 +1,7 @@
 {
   "name": "understudy",
   "version": "0.3.0",
-  "description": "A Claude Code plugin: the tool measures a site's whole brand identity (color, typography, spacing, radii, motion) from the live page; the assistant learns its feel on top, reconciled against the measurement.",
+  "description": "An agent-agnostic skill (Claude Code + Codex): the bundled CLI measures a site's whole brand identity (color, typography, spacing, radii, motion) from the live page; the agent learns its feel on top, reconciled against the measurement.",
   "keywords": [
     "brand",
     "design-tokens",
@@ -24,8 +24,10 @@
     "dist",
     "scripts",
     ".claude-plugin",
+    ".agents",
     "commands",
     "SKILL.md",
+    "AGENTS.md",
     "README.md",
     "LICENSE"
   ],
