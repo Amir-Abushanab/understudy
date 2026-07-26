@@ -13,13 +13,13 @@ function snap(p: Partial<StyleSnapshot>): StyleSnapshot {
   return {
     tag: 'div', area: 100, width: 100, maxWidth: 0, color: 'rgb(20, 20, 20)', background: 'rgba(0, 0, 0, 0)',
     borderColor: 'rgb(0, 0, 0)', borderWidth: 0, fontFamily: 'Inter', fontSize: 16, fontWeight: 400,
-    lineHeight: 24, letterSpacing: '0', textTransform: 'none', fontStyle: 'normal', radius: 0, shadow: '', paddingTop: 0, paddingLeft: 0,
+    lineHeight: 24, letterSpacing: '0', textTransform: 'none', fontStyle: 'normal', fontStretch: 'normal', fontVariantNumeric: 'normal', fontFeatureSettings: 'normal', radius: 0, shadow: '', paddingTop: 0, paddingLeft: 0,
     marginTop: 0, gap: 0, backgroundImage: '', fill: '', stroke: '', hasText: false, interactive: false, ...p,
   };
 }
 
 function input(light: StyleSnapshot[], dark: StyleSnapshot[], defaultBackground: string) {
-  return { light, dark, mobile: [], defaultBackground, fontFaces: [], fontFiles: [], hoverAccents: [], signals: { elementCount: light.length, title: '', textLength: 5000 } };
+  return { light, dark, mobile: [], defaultBackground, fontFaces: [], fontFiles: [], hoverAccents: [], extraGradients: [], signals: { elementCount: light.length, title: '', textLength: 5000 } };
 }
 
 function lightSite(): StyleSnapshot[] {
@@ -101,7 +101,7 @@ test('color: mergePalette folds near-identical colors together', () => {
 
 test('brand: a bot/challenge page is flagged with near-zero confidence', () => {
   const brand = assembleBrand({
-    light: [], dark: [], mobile: [], defaultBackground: 'rgb(255,255,255)', fontFaces: [], fontFiles: [], hoverAccents: [],
+    light: [], dark: [], mobile: [], defaultBackground: 'rgb(255,255,255)', fontFaces: [], fontFiles: [], hoverAccents: [], extraGradients: [],
     signals: { elementCount: 12, title: 'Just a moment...', textLength: 40 },
   });
   assert.equal(brand.challenged, true);

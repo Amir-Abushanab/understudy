@@ -175,7 +175,7 @@ export function saturation(c: Rgb): number {
   return l > 0.5 ? d / (2 - max - min) : d / (max + min);
 }
 
-export function extractColors(snapshots: StyleSnapshot[]): ColorResult {
+export function extractColors(snapshots: StyleSnapshot[], extraGradients: string[] = []): ColorResult {
   // Backgrounds by area (opaque only): the page canvas and its surfaces.
   const bgArea = weightedByKey();
   let totalBgArea = 0;
@@ -264,6 +264,14 @@ export function extractColors(snapshots: StyleSnapshot[]): ColorResult {
       if (c && isChromatic(c) && !DEFAULT_LINK_COLORS.has(colorToken(c))) {
         accentWeight.add(colorToken(c), Math.min(s.area, 4000) * 2);
       }
+    }
+  }
+  // Reconstructed SVG / pseudo-element gradients: decorative brand color the
+  // element walk cannot see (e.g. Stripe's wave backgrounds).
+  for (const grad of extraGradients) {
+    for (const c of gradientColors(grad)) {
+      const key = colorToken(c);
+      if (isChromatic(c) && !DEFAULT_LINK_COLORS.has(key)) accentWeight.add(key, 2200);
     }
   }
   const accentRanked = mergePalette(accentWeight.ranked());

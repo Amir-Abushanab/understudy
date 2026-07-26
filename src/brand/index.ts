@@ -21,8 +21,8 @@ const BLACK: Rgb = { r: 0, g: 0, b: 0, a: 1 };
 const CHALLENGE = /just a moment|attention required|access denied|verify (you|your)|are you a (human|robot)|captcha|enable javascript|checking your browser/i;
 
 export function assembleBrand(input: BrandInput): BrandModel {
-  const lightColors = extractColors(input.light);
-  const darkColors = extractColors(input.dark);
+  const lightColors = extractColors(input.light, input.extraGradients);
+  const darkColors = extractColors(input.dark, input.extraGradients);
 
   // Primary mode from the site's un-forced background, when it is opaque. Many
   // sites leave body/html transparent (the browser paints white), so fall back
@@ -81,7 +81,7 @@ export function assembleBrand(input: BrandInput): BrandModel {
     borderWidths: borderWidthScale(primarySnap),
     containers: containerScale(primarySnap),
     shadows: shadowSet(primarySnap),
-    gradients: gradientSet(primarySnap),
+    gradients: [...new Set([...gradientSet(primarySnap), ...input.extraGradients])].slice(0, 8),
     ...(input.logo ? { logo: input.logo } : {}),
     accessibility,
     provenance,

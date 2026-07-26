@@ -51,6 +51,8 @@ export function extractTypography(snapshots: StyleSnapshot[], fontFaces: FontFac
   if (ratio) result.scaleRatio = ratio;
   if (mono) result.mono = mono;
   if (label) result.label = label;
+  const headings = headingScale(snapshots);
+  if (Object.keys(headings).length > 0) result.headings = headings;
   return result;
 }
 
@@ -120,7 +122,30 @@ function representativeRole(pool: StyleSnapshot[], preferLargest = false): Typog
   };
   if (best.textTransform && best.textTransform !== 'none') role.transform = best.textTransform;
   if (best.fontStyle && best.fontStyle !== 'normal') role.style = best.fontStyle;
+  if (best.fontStretch && best.fontStretch !== 'normal' && best.fontStretch !== '100%') role.stretch = best.fontStretch;
+  if (best.fontVariantNumeric && best.fontVariantNumeric !== 'normal') role.numeric = best.fontVariantNumeric;
+  if (best.fontFeatureSettings && best.fontFeatureSettings !== 'normal' && best.fontFeatureSettings !== 'none') {
+    role.featureSettings = best.fontFeatureSettings;
+  }
   return role;
+}
+
+/** The semantic heading scale: the dominant (area-weighted) size/weight per h1..h6. */
+function headingScale(snapshots: StyleSnapshot[]): Record<string, { size: number; weight: number }> {
+  const out: Record<string, { size: number; weight: number }> = {};
+  for (const level of ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']) {
+    const groups = new Map<string, { size: number; weight: number; area: number }>();
+    for (const s of snapshots) {
+      if (s.tag !== level || s.fontSize <= 0) continue;
+      const key = `${Math.round(s.fontSize)}|${s.fontWeight}`;
+      const g = groups.get(key) ?? { size: Math.round(s.fontSize), weight: s.fontWeight, area: 0 };
+      g.area += s.area;
+      groups.set(key, g);
+    }
+    const best = [...groups.values()].sort((a, b) => b.area - a.area)[0];
+    if (best) out[level] = { size: best.size, weight: best.weight };
+  }
+  return out;
 }
 
 /** Cluster font sizes into an ascending, deduped scale (merging within 1px). */

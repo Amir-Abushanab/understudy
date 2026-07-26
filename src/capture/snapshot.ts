@@ -54,6 +54,9 @@ export function snapshotStyles(page: Page): Promise<StyleSnapshot[]> {
         letterSpacing: cs.letterSpacing === 'normal' ? '0' : cs.letterSpacing,
         textTransform: cs.textTransform || 'none',
         fontStyle: cs.fontStyle || 'normal',
+        fontStretch: cs.fontStretch || 'normal',
+        fontVariantNumeric: cs.fontVariantNumeric || 'normal',
+        fontFeatureSettings: cs.fontFeatureSettings || 'normal',
         radius: parseFloat(cs.borderTopLeftRadius) || 0,
         shadow: cs.boxShadow === 'none' ? '' : cs.boxShadow,
         paddingTop: parseFloat(cs.paddingTop) || 0,
@@ -170,6 +173,61 @@ export function captureLogo(page: Page): Promise<LogoAsset | null> {
       return img.alt ? { kind: 'img' as const, src: img.src, alt: img.alt } : { kind: 'img' as const, src: img.src };
     }
     return null;
+  });
+}
+
+/**
+ * Gradients the element walk misses: SVG gradient defs (referenced via
+ * fill="url(#id)", so the computed fill is just a URL) reconstructed as CSS
+ * gradient strings, and background gradients on ::before/::after of large blocks.
+ * These are where decorative brand gradients (Stripe's waves) actually live.
+ */
+export function captureExtraGradients(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const grads: string[] = [];
+
+    const pct = (offset: string): string =>
+      offset.includes('%') ? offset.trim() : `${Math.round((parseFloat(offset) || 0) * 100)}%`;
+    const withOpacity = (color: string, opacity: string): string => {
+      const o = parseFloat(opacity);
+      if (!Number.isFinite(o) || o >= 1) return color;
+      const m = /rgba?\(([^)]+)\)/.exec(color);
+      if (!m) return color;
+      const [r, g, b] = m[1].split(',').map((x) => parseFloat(x));
+      return `rgba(${r}, ${g}, ${b}, ${o})`;
+    };
+
+    // SVG gradient definitions.
+    for (const g of Array.from(document.querySelectorAll('linearGradient, radialGradient'))) {
+      const stops = Array.from(g.querySelectorAll('stop')).map((s) => {
+        const cs = getComputedStyle(s);
+        return `${withOpacity(cs.stopColor, cs.stopOpacity)} ${pct(s.getAttribute('offset') || '0')}`;
+      });
+      if (stops.length < 2) continue;
+      if (g.tagName.toLowerCase() === 'lineargradient') {
+        const x1 = parseFloat(g.getAttribute('x1') || '0');
+        const y1 = parseFloat(g.getAttribute('y1') || '0');
+        const x2 = parseFloat(g.getAttribute('x2') || '1');
+        const y2 = parseFloat(g.getAttribute('y2') || '0');
+        const angle = Math.round((Math.atan2(y2 - y1, x2 - x1) * 180) / Math.PI + 90);
+        grads.push(`linear-gradient(${angle}deg, ${stops.join(', ')})`);
+      } else {
+        grads.push(`radial-gradient(circle, ${stops.join(', ')})`);
+      }
+    }
+
+    // Pseudo-element gradients on large blocks (decorative backgrounds).
+    const all = document.querySelectorAll('*');
+    for (let i = 0; i < all.length; i++) {
+      const rect = all[i].getBoundingClientRect();
+      if (rect.width * rect.height < 20000) continue;
+      for (const pseudo of ['::before', '::after']) {
+        const bg = getComputedStyle(all[i], pseudo).backgroundImage;
+        if (bg && bg.includes('gradient')) grads.push(bg.slice(0, 400));
+      }
+    }
+
+    return Array.from(new Set(grads)).slice(0, 20);
   });
 }
 

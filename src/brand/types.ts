@@ -34,6 +34,10 @@ export interface StyleSnapshot {
   textTransform: string;
   /** font-style (`normal`, `italic`). */
   fontStyle: string;
+  /** font-stretch, font-variant-numeric, font-feature-settings (OpenType). */
+  fontStretch: string;
+  fontVariantNumeric: string;
+  fontFeatureSettings: string;
   radius: number;
   /** box-shadow string, or empty when `none`. */
   shadow: string;
@@ -83,6 +87,12 @@ export interface TypographyRole {
   transform?: string;
   /** font-style, when not `normal` (e.g. `italic`). */
   style?: string;
+  /** font-stretch, when not `100%`/`normal` (condensed / expanded). */
+  stretch?: string;
+  /** font-variant-numeric, when not `normal` (e.g. `tabular-nums`). */
+  numeric?: string;
+  /** font-feature-settings, when not `normal`/`none` (OpenType features). */
+  featureSettings?: string;
 }
 
 export interface Typography {
@@ -95,6 +105,8 @@ export interface Typography {
   families: string[];
   /** The recovered type size scale in px, ascending. */
   scale: number[];
+  /** The semantic heading scale: h1..h6 -> size/weight, where present. */
+  headings?: Record<string, { size: number; weight: number }>;
   /** Distinct font weights observed, ascending. */
   weights: number[];
   /** The modular-scale ratio between adjacent sizes, when the scale is regular. */
@@ -136,6 +148,8 @@ export interface BrandInput {
   fontFiles: string[];
   /** Chromatic colors observed when hovering interactive elements. */
   hoverAccents: string[];
+  /** Reconstructed SVG + pseudo-element gradients the element walk misses. */
+  extraGradients: string[];
   /** The captured brand mark, when found. */
   logo?: LogoAsset;
   signals: PageSignals;

@@ -173,19 +173,23 @@ function levelBadges(passes: string[]): string {
 function typography(brand: BrandModel): string {
   const t = brand.typography;
   const specs = [specimen('display', t.display), specimen('body', t.body), t.mono ? specimen('mono', t.mono) : '', t.label ? specimen('label', t.label) : ''].join('');
+  const headings = t.headings && Object.keys(t.headings).length > 0
+    ? `<div class="sub">heading scale</div><div class="hscale">${Object.entries(t.headings).map(([lvl, h]) => `<div class="hrow"><span class="mono dim hlvl">${lvl}</span><span class="hsize" style="font-family:${cssFam(t.display.family)};font-size:${Math.min(h.size, 42)}px;font-weight:${h.weight}">${lvl.toUpperCase()}</span><span class="mono dim">${h.size}px · w${h.weight}</span></div>`).join('')}</div>`
+    : '';
   const ladder = t.weights.length > 1
     ? `<div class="sub">weight ladder</div><div class="wladder">${t.weights.map((w) => `<div class="wrow"><span class="mono dim">${w}</span><span class="wsample" style="font-family:${cssFam(t.body.family)};font-weight:${w}">Grumpy wizards make toxic brew</span></div>`).join('')}</div>`
     : '';
   const scale = t.scale.length ? `<div class="sub">size scale${t.scaleRatio ? ` · ratio ${t.scaleRatio}` : ''}</div><div class="chips">${t.scale.map((s) => `<span class="pchip mono">${s}px</span>`).join('')}</div>` : '';
   const files = t.fontFiles && t.fontFiles.length ? `<div class="sub">font files</div><ul class="files mono">${t.fontFiles.slice(0, 6).map((f) => `<li>${esc(shortUrl(f))}</li>`).join('')}</ul>` : '';
-  return panel('Typography', specs + ladder + scale + files);
+  return panel('Typography', specs + headings + ladder + scale + files);
 }
 
 function specimen(label: string, role: TypographyRole): string {
   const tracked = role.letterSpacing && role.letterSpacing !== '0';
-  const meta = [`${role.size}px`, `w${role.weight}`, role.lineHeight ? `lh ${role.lineHeight}` : '', tracked ? `ls ${role.letterSpacing}` : '', role.transform ?? '', role.style ?? '']
-    .filter(Boolean)
-    .join(' · ');
+  const meta = [
+    `${role.size}px`, `w${role.weight}`, role.lineHeight ? `lh ${role.lineHeight}` : '', tracked ? `ls ${role.letterSpacing}` : '',
+    role.transform ?? '', role.style ?? '', role.stretch ? `stretch ${role.stretch}` : '', role.numeric ?? '', role.featureSettings ? `feat ${role.featureSettings}` : '',
+  ].filter(Boolean).join(' · ');
   const css = [
     `font-family:${cssFam(role.family)}`,
     `font-size:${Math.min(role.size, 52)}px`,
@@ -193,6 +197,9 @@ function specimen(label: string, role: TypographyRole): string {
     tracked ? `letter-spacing:${role.letterSpacing}` : '',
     role.transform ? `text-transform:${role.transform}` : '',
     role.style ? `font-style:${role.style}` : '',
+    role.stretch ? `font-stretch:${role.stretch}` : '',
+    role.numeric ? `font-variant-numeric:${role.numeric}` : '',
+    role.featureSettings ? `font-feature-settings:${role.featureSettings}` : '',
   ].filter(Boolean).join(';');
   return `<div class="spec"><div class="spec-head"><span class="mono dim">${label}</span><span class="mono">${esc(role.family)} · ${esc(meta)}</span></div><div class="spec-line" style="${css}">Ag ${esc(role.family)}</div></div>`;
 }
@@ -335,6 +342,10 @@ h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute
 .wrow{display:flex;align-items:baseline;gap:14px}
 .wrow .mono{width:34px;flex:none;font-size:11px}
 .wsample{font-size:19px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hscale{display:flex;flex-direction:column;gap:8px}
+.hrow{display:flex;align-items:baseline;gap:14px}
+.hlvl{width:24px;flex:none}
+.hsize{flex:1;line-height:1.05;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .files{margin:6px 0 0;padding-left:16px;font-size:11px;color:var(--muted)}
 .bars{display:flex;flex-direction:column;gap:5px}
 .bar{display:flex;align-items:center;gap:10px;font-size:11px}
