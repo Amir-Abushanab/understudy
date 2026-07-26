@@ -12,6 +12,7 @@
 import { Document, isSeq } from 'yaml';
 import type { MotionModel } from '../analyze/model.js';
 import type { BrandModel, TypographyRole, FontFaceRule } from '../brand/types.js';
+import type { Rationale } from '../context/types.js';
 import { spliceMotion } from './motion-yaml.js';
 
 export interface DesignModel {
@@ -20,6 +21,8 @@ export interface DesignModel {
   capturedAt: string;
   brand: BrandModel;
   motion: MotionModel;
+  /** The qualitative rationale/feel, synthesized from sources (spec §13). */
+  rationale?: Rationale;
 }
 
 const HEADER = [
@@ -77,8 +80,23 @@ export function emitDesignModel(design: DesignModel): string {
   doc.contents = doc.createNode(brandBlock);
   styleBrandArrays(doc);
   spliceMotion(doc, design.motion); // appends and styles the motion block
+  if (design.rationale) doc.set('rationale', doc.createNode(buildRationaleBlock(design.rationale)));
 
   return doc.toString({ lineWidth: 0 });
+}
+
+export function buildRationaleBlock(r: Rationale): Record<string, unknown> {
+  const out: Record<string, unknown> = { summary: r.summary };
+  if (r.archetype) out.archetype = r.archetype;
+  if (r.voice) out.voice = r.voice;
+  out.sources = r.sources.map((s) => ({ url: s.url, ...(s.title ? { title: s.title } : {}), tier: s.tier, ...(s.fetchedAt ? { fetched_at: s.fetchedAt } : {}) }));
+  out.principles = r.principles.map((p) => ({ claim: p.claim, source: p.source, quantified: p.quantified, ...(p.implies ? { implies: p.implies } : {}) }));
+  if (r.constraints.length > 0) out.constraints = r.constraints;
+  if (r.divergences && r.divergences.length > 0) {
+    out.divergences = r.divergences.map((d) => ({ token: d.token, documented: d.documented, measured: d.measured, note: d.note, resolution: d.resolution }));
+  }
+  if (r.reconciled && r.reconciled.length > 0) out.reconciled = r.reconciled;
+  return out;
 }
 
 function role(r: TypographyRole): Record<string, unknown> {

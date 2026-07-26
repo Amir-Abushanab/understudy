@@ -102,7 +102,44 @@ export function validateDesignModel(text: string, options: ValidateOptions = {})
   const isMotionOnly = !looksBrand && (isDict(root.primitives) || isDict(root.meta));
   if (hasMotion || isMotionOnly) findings.push(...validateMotionBlock(text, options));
 
+  if (isDict(root.rationale)) validateRationale(root.rationale, findings);
+
   return findings;
+}
+
+/** Rationale checks (§8 v0.3): sources resolve, never-quantize-a-vibe, complete
+ * divergences, no em-dashes in prose. */
+function validateRationale(r: Dict, findings: Finding[]): void {
+  if (typeof r.summary !== 'string' || r.summary.trim().length === 0) {
+    findings.push({ level: 'ERROR', check: 'rationale', detail: 'rationale.summary is required' });
+  }
+  const sourceCount = Array.isArray(r.sources) ? r.sources.length : 0;
+
+  if (Array.isArray(r.principles)) {
+    r.principles.forEach((p, i) => {
+      if (!isDict(p)) return;
+      if (typeof p.source !== 'number' || p.source < 0 || p.source >= sourceCount) {
+        findings.push({ level: 'ERROR', check: 'rationale', detail: `principles[${i}].source does not resolve to a sources index` });
+      }
+      if (p.quantified === false && typeof p.implies === 'string' && /\d/.test(p.implies)) {
+        findings.push({ level: 'ERROR', check: 'never-quantize-a-vibe', detail: `principles[${i}] is quantified:false but implies a number ("${p.implies}")` });
+      }
+    });
+  }
+
+  if (Array.isArray(r.divergences)) {
+    r.divergences.forEach((d, i) => {
+      if (isDict(d) && (d.documented === undefined || d.measured === undefined)) {
+        findings.push({ level: 'ERROR', check: 'rationale', detail: `divergences[${i}] must have both documented and measured` });
+      }
+    });
+  }
+
+  const offenders: string[] = [];
+  walkStrings(r, 'rationale', (path, value) => {
+    if (EM_DASH.test(value)) offenders.push(path);
+  });
+  for (const path of offenders) findings.push({ level: 'ERROR', check: 'em-dash', detail: `em-dash in rationale prose ${path}` });
 }
 
 function validateBrand(root: Dict, findings: Finding[]): void {

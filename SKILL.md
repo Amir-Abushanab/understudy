@@ -4,9 +4,10 @@ description: >-
   Measure a website's whole brand identity from a live, rendered page and emit a
   design-model.yaml: color palette with roles and light/dark modes, typography,
   spacing and radius scales, and measured motion (durations, easings, springs,
-  stagger, choreography). Use when a design system needs real, measured brand
-  tokens rather than values guessed from screenshots. Runs locally against a URL
-  the user supplies; no account or API key.
+  stagger, choreography). Then learn its feel: read the brand's design writing and
+  synthesize a cited rationale reconciled against the measurement. The tool
+  measures ground truth deterministically; the assistant adds the qualitative
+  layer, under a never-quantize-a-vibe rule. No account or API key.
 license: MIT
 ---
 

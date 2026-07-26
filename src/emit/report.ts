@@ -23,6 +23,7 @@ export function toBrandReport(design: DesignModel): string {
     `<main class="report">`,
     brandHero(design),
     metaBar(design),
+    rationaleSection(design),
     palette(brand), accessibility(brand), typography(brand), scales(brand), elevation(brand), gradients(brand), motionSection(motion),
     footer(design),
     `</main>`,
@@ -125,6 +126,35 @@ function readableText(hex: string): string {
 }
 function norm(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function rationaleSection(design: DesignModel): string {
+  const r = design.rationale;
+  if (!r) return '';
+  const sources = r.sources ?? [];
+  const cite = (i: number): string => `<a class="cite" href="${esc(sources[i]?.url ?? '#')}">[${i + 1}]</a>`;
+  const principles = (r.principles ?? [])
+    .map((p) => `<li>${esc(p.claim)} ${cite(p.source)}${p.quantified ? ' <span class="qtag mono">stated number</span>' : ''}</li>`)
+    .join('');
+  const constraints = (r.constraints ?? []).map((c) => `<li>${esc(c)}</li>`).join('');
+  const divergences =
+    r.divergences && r.divergences.length > 0
+      ? `<div class="sub">divergences (documented vs measured)</div><table class="tbl"><tbody>${r.divergences
+          .map((d) => `<tr><td class="mono">${esc(d.token)}</td><td class="mono">${esc(String(d.documented))}</td><td class="mono dim">measured ${esc(String(d.measured))}</td><td class="mono">${esc(d.resolution)}</td></tr>`)
+          .join('')}</tbody></table>`
+      : '';
+  const srcList = sources
+    .map((s, i) => `<li><span class="mono dim">[${i + 1}] tier ${s.tier}</span> <a href="${esc(s.url)}">${esc(s.title ?? shortUrl(s.url))}</a></li>`)
+    .join('');
+  return `<section class="panel feel">
+    <h2 class="mono">Feel${r.archetype ? ` · ${esc(r.archetype)}` : ''}</h2>
+    <p class="feel-summary">${esc(r.summary)}</p>
+    ${r.voice ? `<p class="feel-voice"><span class="mono dim">voice</span> ${esc(r.voice)}</p>` : ''}
+    ${principles ? `<div class="sub">principles</div><ul class="rlist">${principles}</ul>` : ''}
+    ${constraints ? `<div class="sub">constraints (what it refuses to do)</div><ul class="rlist neg">${constraints}</ul>` : ''}
+    ${divergences}
+    ${srcList ? `<div class="sub">sources</div><ul class="rlist srcs">${srcList}</ul>` : ''}
+  </section>`;
 }
 
 function palette(brand: BrandModel): string {
@@ -365,6 +395,14 @@ h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute
 .curve .diag{stroke:var(--line);stroke-width:1.5}
 .curve .cv{fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linecap:round}
 .spring{width:84px;height:84px;background:var(--faint);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-family:var(--mono);font-size:11px}
+.feel-summary{font-size:19px;line-height:1.55;max-width:62ch;margin:0}
+.feel-voice{font-size:13px;color:var(--muted);margin:12px 0 0}
+.rlist{margin:6px 0 0;padding-left:20px;font-size:14px;line-height:1.6}
+.rlist li{margin-bottom:5px}
+.rlist.neg li::marker{content:"✕  ";color:var(--bad)}
+.rlist.srcs{font-size:12px;color:var(--muted)}
+.cite{color:var(--accent);text-decoration:none;font-size:11px;vertical-align:super}
+.qtag{font-size:9px;color:var(--muted);border:1px solid var(--line);border-radius:3px;padding:1px 5px;margin-left:4px}
 .foot{margin-top:36px;padding-top:18px;border-top:1px solid var(--line);display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
 @media(max-width:640px){.head{flex-direction:column}h1{font-size:26px}}
 </style>`;

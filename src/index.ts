@@ -13,15 +13,17 @@
 
 import { parseArgs } from 'node:util';
 import { readFileSync, writeFileSync } from 'node:fs';
+import { parseDocument } from 'yaml';
 import type { CapturePassName } from './capture/types.js';
 import { captureSite } from './capture/session.js';
 import { analyze } from './analyze/index.js';
 import { assembleBrand } from './brand/index.js';
 import { emitMotionYaml } from './emit/motion-yaml.js';
 import { toBrandCss, toTailwindConfig, toDesignTokens } from './emit/tokens.js';
-import { emitDesignModel, nameFromUrl, type DesignModel } from './emit/design-model.js';
+import { emitDesignModel, buildRationaleBlock, nameFromUrl, type DesignModel } from './emit/design-model.js';
 import { toBrandReport } from './emit/report.js';
 import { mergeIntoDesignModel } from './emit/merge.js';
+import { reconcile, measuredFromYaml } from './context/reconcile.js';
 import { validateDesignModel, hasErrors, formatReport } from './validate.js';
 
 const ALLOWED_PASSES: CapturePassName[] = ['scroll', 'hover', 'click'];
@@ -30,6 +32,7 @@ const HELP = `understudy - measure a site's brand identity (color, type, spacing
 
 usage:
   understudy capture <url> [options]
+  understudy context <design-model.yaml> <rationale.json> [-o out.yaml]
   understudy validate <path-to-design-model.yaml>
 
 capture options:
@@ -80,6 +83,37 @@ async function main(): Promise<void> {
     const findings = validateDesignModel(readFileSync(file, 'utf8'));
     console.log(formatReport(findings, file));
     process.exitCode = hasErrors(findings) ? 1 : 0;
+    return;
+  }
+
+  if (command === 'context') {
+    const modelPath = positionals[1];
+    const rationalePath = positionals[2];
+    if (!modelPath || !rationalePath) fail('usage: understudy context <design-model.yaml> <rationale.json> [-o out.yaml]');
+    const doc = parseDocument(readFileSync(modelPath, 'utf8'));
+    if (doc.errors.length > 0) fail(`design-model.yaml did not parse: ${doc.errors[0].message}`);
+    const parsed = doc.toJS() as Record<string, unknown>;
+    let rationale;
+    try {
+      rationale = JSON.parse(readFileSync(rationalePath, 'utf8'));
+    } catch (err) {
+      fail(`rationale.json did not parse: ${(err as Error).message}`);
+    }
+    const { divergences, reconciled } = reconcile((p) => measuredFromYaml(parsed as Record<string, any>, p), rationale);
+    doc.set('rationale', doc.createNode(buildRationaleBlock({ ...rationale, divergences, reconciled })));
+    const outYaml = doc.toString({ lineWidth: 0 });
+    if (values.output) {
+      writeFileSync(values.output, outYaml);
+      console.error(`understudy: wrote ${values.output}`);
+    } else {
+      process.stdout.write(outYaml);
+    }
+    console.error(`understudy: reconciled ${reconciled.length} token(s), ${divergences.length} divergence(s)`);
+    const findings = validateDesignModel(outYaml);
+    if (hasErrors(findings)) {
+      console.error(formatReport(findings, values.output ?? 'design-model.yaml'));
+      process.exitCode = 1;
+    }
     return;
   }
 
