@@ -47,6 +47,7 @@ export function emitDesignModel(design: DesignModel): string {
       families: brand.typography.families,
       scale: brand.typography.scale,
       ...(brand.typography.scaleRatio ? { scale_ratio: brand.typography.scaleRatio } : {}),
+      ...(brand.typography.measure ? { measure: brand.typography.measure } : {}),
       ...(brand.typography.headings
         ? { headings: Object.fromEntries(Object.entries(brand.typography.headings).map(([k, h]) => [k, { size: `${h.size}px`, weight: h.weight }])) }
         : {}),
@@ -93,6 +94,9 @@ function role(r: TypographyRole): Record<string, unknown> {
   if (r.stretch) out.stretch = r.stretch;
   if (r.numeric) out.numeric = r.numeric;
   if (r.featureSettings) out.feature_settings = r.featureSettings;
+  if (r.variationSettings) out.variation_settings = r.variationSettings;
+  if (r.opticalSizing) out.optical_sizing = r.opticalSizing;
+  if (r.wordSpacing) out.word_spacing = r.wordSpacing;
   return out;
 }
 

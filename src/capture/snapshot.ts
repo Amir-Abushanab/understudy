@@ -57,6 +57,9 @@ export function snapshotStyles(page: Page): Promise<StyleSnapshot[]> {
         fontStretch: cs.fontStretch || 'normal',
         fontVariantNumeric: cs.fontVariantNumeric || 'normal',
         fontFeatureSettings: cs.fontFeatureSettings || 'normal',
+        fontVariationSettings: cs.fontVariationSettings || 'normal',
+        fontOpticalSizing: cs.fontOpticalSizing || 'auto',
+        wordSpacing: cs.wordSpacing === 'normal' || parseFloat(cs.wordSpacing) === 0 ? '0' : cs.wordSpacing,
         radius: parseFloat(cs.borderTopLeftRadius) || 0,
         shadow: cs.boxShadow === 'none' ? '' : cs.boxShadow,
         paddingTop: parseFloat(cs.paddingTop) || 0,
@@ -228,6 +231,28 @@ export function captureExtraGradients(page: Page): Promise<string[]> {
     }
 
     return Array.from(new Set(grads)).slice(0, 20);
+  });
+}
+
+/** Body measure: the median characters-per-line of wrapped running text. A real
+ * typographic decision (optimal measure is ~45-75ch), measured from rendered
+ * paragraphs (text length / line count) rather than estimated. */
+export function captureMeasure(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const measures: number[] = [];
+    for (const p of Array.from(document.querySelectorAll('p, li'))) {
+      const text = (p.textContent || '').trim();
+      if (text.length < 40) continue;
+      const cs = getComputedStyle(p);
+      const lh = cs.lineHeight === 'normal' ? parseFloat(cs.fontSize) * 1.2 : parseFloat(cs.lineHeight);
+      if (!lh) continue;
+      const lines = Math.round(p.getBoundingClientRect().height / lh);
+      if (lines < 2) continue; // single-line text is not measure-limited
+      measures.push(text.length / lines);
+    }
+    if (measures.length === 0) return 0;
+    measures.sort((a, b) => a - b);
+    return Math.round(measures[Math.floor(measures.length / 2)]);
   });
 }
 

@@ -38,6 +38,10 @@ export interface StyleSnapshot {
   fontStretch: string;
   fontVariantNumeric: string;
   fontFeatureSettings: string;
+  /** font-variation-settings (variable axes), font-optical-sizing, word-spacing. */
+  fontVariationSettings: string;
+  fontOpticalSizing: string;
+  wordSpacing: string;
   radius: number;
   /** box-shadow string, or empty when `none`. */
   shadow: string;
@@ -93,6 +97,12 @@ export interface TypographyRole {
   numeric?: string;
   /** font-feature-settings, when not `normal`/`none` (OpenType features). */
   featureSettings?: string;
+  /** font-variation-settings, when not `normal` (variable-font axes: wght/opsz/slnt/...). */
+  variationSettings?: string;
+  /** font-optical-sizing, when not `auto`. */
+  opticalSizing?: string;
+  /** word-spacing, when not `normal`/`0`. */
+  wordSpacing?: string;
 }
 
 export interface Typography {
@@ -107,6 +117,8 @@ export interface Typography {
   scale: number[];
   /** The semantic heading scale: h1..h6 -> size/weight, where present. */
   headings?: Record<string, { size: number; weight: number }>;
+  /** Body measure: typical characters per line of running text. */
+  measure?: number;
   /** Distinct font weights observed, ascending. */
   weights: number[];
   /** The modular-scale ratio between adjacent sizes, when the scale is regular. */
@@ -150,6 +162,8 @@ export interface BrandInput {
   hoverAccents: string[];
   /** Reconstructed SVG + pseudo-element gradients the element walk misses. */
   extraGradients: string[];
+  /** Body measure: typical characters per line of running text. */
+  measure: number;
   /** The captured brand mark, when found. */
   logo?: LogoAsset;
   signals: PageSignals;

@@ -13,7 +13,7 @@
 import { chromium, type Browser, type Page } from 'playwright';
 import type { CapturePassName, CaptureLimitation, SiteCapture } from './types.js';
 import { instrumentBrowser } from './instrument.js';
-import { snapshotStyles, snapshotFontFaces, fontFiles, pageSignals, captureLogo, captureExtraGradients } from './snapshot.js';
+import { snapshotStyles, snapshotFontFaces, fontFiles, pageSignals, captureLogo, captureExtraGradients, captureMeasure } from './snapshot.js';
 import { assembleCapture, type RawCaptureData } from './assemble.js';
 import { USER_AGENT_SUFFIX, installOffOriginGuard, isAllowedByRobots, collectSafeTargets } from './safety.js';
 import { runScrollPass } from './passes/scroll.js';
@@ -108,6 +108,7 @@ export async function captureSite(options: CaptureOptions): Promise<SiteCapture>
     const hoverAccents = await captureHoverAccents(page);
     const logo = await captureLogo(page);
     const extraGradients = await captureExtraGradients(page);
+    const measure = await captureMeasure(page);
 
     await page.emulateMedia({ colorScheme: 'light' });
     await page.waitForTimeout(250);
@@ -130,7 +131,7 @@ export async function captureSite(options: CaptureOptions): Promise<SiteCapture>
     return {
       motion,
       styles: {
-        light, dark, mobile, defaultBackground, fontFaces, fontFiles: fontFileUrls, hoverAccents, extraGradients, signals,
+        light, dark, mobile, defaultBackground, fontFaces, fontFiles: fontFileUrls, hoverAccents, extraGradients, measure, signals,
         ...(logo ? { logo } : {}),
       },
     };

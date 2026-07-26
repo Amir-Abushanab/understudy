@@ -127,6 +127,9 @@ function representativeRole(pool: StyleSnapshot[], preferLargest = false): Typog
   if (best.fontFeatureSettings && best.fontFeatureSettings !== 'normal' && best.fontFeatureSettings !== 'none') {
     role.featureSettings = best.fontFeatureSettings;
   }
+  if (best.fontVariationSettings && best.fontVariationSettings !== 'normal') role.variationSettings = best.fontVariationSettings;
+  if (best.fontOpticalSizing && best.fontOpticalSizing !== 'auto') role.opticalSizing = best.fontOpticalSizing;
+  if (best.wordSpacing && best.wordSpacing !== '0' && best.wordSpacing !== 'normal') role.wordSpacing = best.wordSpacing;
   return role;
 }
 

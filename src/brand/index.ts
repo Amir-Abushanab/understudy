@@ -51,6 +51,7 @@ export function assembleBrand(input: BrandInput): BrandModel {
 
   const typography = extractTypography(primarySnap, input.fontFaces);
   if (input.fontFiles.length > 0) typography.fontFiles = input.fontFiles;
+  if (input.measure > 0) typography.measure = input.measure;
   if (input.mobile.length > 20) {
     const responsive = detectResponsive(extractTypography(input.light), extractTypography(input.mobile));
     if (responsive) typography.responsive = responsive;

@@ -179,7 +179,7 @@ function typography(brand: BrandModel): string {
   const ladder = t.weights.length > 1
     ? `<div class="sub">weight ladder</div><div class="wladder">${t.weights.map((w) => `<div class="wrow"><span class="mono dim">${w}</span><span class="wsample" style="font-family:${cssFam(t.body.family)};font-weight:${w}">Grumpy wizards make toxic brew</span></div>`).join('')}</div>`
     : '';
-  const scale = t.scale.length ? `<div class="sub">size scale${t.scaleRatio ? ` · ratio ${t.scaleRatio}` : ''}</div><div class="chips">${t.scale.map((s) => `<span class="pchip mono">${s}px</span>`).join('')}</div>` : '';
+  const scale = t.scale.length ? `<div class="sub">size scale${t.scaleRatio ? ` · ratio ${t.scaleRatio}` : ''}${t.measure ? ` · measure ${t.measure} char/line` : ''}</div><div class="chips">${t.scale.map((s) => `<span class="pchip mono">${s}px</span>`).join('')}</div>` : '';
   const files = t.fontFiles && t.fontFiles.length ? `<div class="sub">font files</div><ul class="files mono">${t.fontFiles.slice(0, 6).map((f) => `<li>${esc(shortUrl(f))}</li>`).join('')}</ul>` : '';
   return panel('Typography', specs + headings + ladder + scale + files);
 }
@@ -189,6 +189,7 @@ function specimen(label: string, role: TypographyRole): string {
   const meta = [
     `${role.size}px`, `w${role.weight}`, role.lineHeight ? `lh ${role.lineHeight}` : '', tracked ? `ls ${role.letterSpacing}` : '',
     role.transform ?? '', role.style ?? '', role.stretch ? `stretch ${role.stretch}` : '', role.numeric ?? '', role.featureSettings ? `feat ${role.featureSettings}` : '',
+    role.variationSettings ? `axes ${role.variationSettings}` : '', role.opticalSizing ? `opsz ${role.opticalSizing}` : '', role.wordSpacing ? `word ${role.wordSpacing}` : '',
   ].filter(Boolean).join(' · ');
   const css = [
     `font-family:${cssFam(role.family)}`,
@@ -200,6 +201,9 @@ function specimen(label: string, role: TypographyRole): string {
     role.stretch ? `font-stretch:${role.stretch}` : '',
     role.numeric ? `font-variant-numeric:${role.numeric}` : '',
     role.featureSettings ? `font-feature-settings:${role.featureSettings}` : '',
+    role.variationSettings ? `font-variation-settings:${role.variationSettings}` : '',
+    role.opticalSizing ? `font-optical-sizing:${role.opticalSizing}` : '',
+    role.wordSpacing ? `word-spacing:${role.wordSpacing}` : '',
   ].filter(Boolean).join(';');
   return `<div class="spec"><div class="spec-head"><span class="mono dim">${label}</span><span class="mono">${esc(role.family)} · ${esc(meta)}</span></div><div class="spec-line" style="${css}">Ag ${esc(role.family)}</div></div>`;
 }
