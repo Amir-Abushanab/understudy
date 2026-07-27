@@ -26,6 +26,7 @@
     ".claude-plugin",
     ".agents",
     "plugins",
+    "recipes",
     "commands",
     "SKILL.md",
     "AGENTS.md",
