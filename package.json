@@ -25,6 +25,7 @@
     "scripts",
     ".claude-plugin",
     ".agents",
+    "plugins",
     "commands",
     "SKILL.md",
     "AGENTS.md",
@@ -34,7 +35,7 @@
   "scripts": {
     "dev": "tsx src/index.ts",
     "capture": "tsx src/index.ts capture",
-    "sync-skill": "cp SKILL.md .agents/skills/understudy/SKILL.md",
+    "sync-skill": "cp SKILL.md .agents/skills/understudy/SKILL.md && cp SKILL.md plugins/understudy/skills/understudy/SKILL.md",
     "build": "pnpm run sync-skill && tsc",
     "prepare": "pnpm run sync-skill && tsc",
     "typecheck": "tsc --noEmit",

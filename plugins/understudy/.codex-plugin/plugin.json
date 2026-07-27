@@ -1,0 +1,32 @@
+{
+  "name": "understudy",
+  "version": "0.3.0",
+  "description": "Learn any website's brand identity: measure color, typography, spacing, and motion from the live page, then synthesize its feel from the brand's own design writing.",
+  "author": {
+    "name": "understudy"
+  },
+  "license": "MIT",
+  "keywords": [
+    "brand",
+    "design-tokens",
+    "design-system",
+    "color-extraction",
+    "typography",
+    "motion",
+    "playwright"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "understudy",
+    "shortDescription": "Measure a site's brand, then learn its feel",
+    "longDescription": "understudy drives a real browser to measure a website's whole brand identity - color palette with light/dark roles, typography, spacing and radius scales, and motion (durations, easings, springs, choreography) - and emits a design-model.yaml plus CSS/Tailwind/DTCG tokens. Then the agent learns the brand's feel from its own design writing and reconciles it against the measurement, under a never-quantize-a-vibe rule. The tool measures ground truth deterministically; the assistant adds the qualitative layer.",
+    "developerName": "understudy",
+    "category": "Creativity",
+    "capabilities": ["Read", "Write"],
+    "defaultPrompt": [
+      "Extract the full brand identity of a website I give you",
+      "Measure this site's color, type, and motion tokens",
+      "Learn the feel of this brand and cite the sources"
+    ]
+  }
+}
