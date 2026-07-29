@@ -80,19 +80,88 @@ function heroVarsCss(brand: BrandModel): string {
   return `<style>${rules.join('')}</style>`;
 }
 
-/** Neutral instrument meta strip below the brand hero. */
+/** Neutral instrument meta strip below the brand hero. Each cell carries an icon,
+ * a plain-language tooltip (dotted underline signals the hint), and cites where
+ * the value comes from. Confidences read as percentages. */
 function metaBar(design: DesignModel): string {
   const { brand, motion } = design;
-  const item = (label: string, value: string, warn = false) =>
-    `<div><span class="mk">${label}</span><span class="mono"${warn ? ' style="color:var(--warn)"' : ''}>${value}</span></div>`;
-  return `<div class="metabar">
-    ${item('mode', brand.mode + (Object.keys(brand.colors).length > 1 ? ' + ' + otherMode(brand.mode) : ''))}
-    ${item('brand conf', brand.confidence.toFixed(2))}
-    ${item('motion conf', motion.meta.confidence.toFixed(2))}
-    ${item('archetype', motion.personality.archetype)}
-    ${item('sampled', brand.sampled.toLocaleString('en-US'))}
-    ${brand.challenged ? item('warning', 'challenge page', true) : ''}
-  </div>`;
+  const themed = Object.keys(brand.colors).length > 1;
+  const pct = (n: number): string => `${Math.round(n * 100)}%`;
+  const from = host(design.source);
+  const when = design.capturedAt.slice(0, 10);
+
+  const items: { icon: string; label: string; value: string; tip: string; warn?: boolean }[] = [
+    {
+      icon: 'mode', label: 'mode',
+      value: brand.mode + (themed ? ' + ' + otherMode(brand.mode) : ''),
+      tip: `Primary color scheme the page renders in${themed ? ', with both light and dark measured' : ' (only this mode was found on the page)'}. Read live from ${from} on ${when}.`,
+    },
+    {
+      icon: 'brand', label: 'brand conf',
+      value: pct(brand.confidence),
+      tip: `How sure understudy is about the extracted brand: how many elements it sampled, whether clear surface and text roles emerged, and internal cross-checks. 0 to 100%. Measured from ${from}.`,
+    },
+    {
+      icon: 'motion', label: 'motion conf',
+      value: pct(motion.meta.confidence),
+      tip: `Confidence in the measured motion: sample count, how cleanly the timing curves fit, and agreement between the sampled motion and the page's declared CSS or WAAPI timing. 0 to 100%.`,
+    },
+    {
+      icon: 'archetype', label: 'motion archetype',
+      value: motion.personality.archetype,
+      tip: `A personality label inferred from the measured motion (median duration, easing bias, any overshoot). Derived from measurement, not declared by the site.`,
+    },
+    {
+      icon: 'sampled', label: 'sampled',
+      value: brand.sampled.toLocaleString('en-US'),
+      tip: `Number of on-page elements understudy read to build this model. More elements means a fuller picture. Read live from ${from} on ${when}.`,
+    },
+  ];
+  if (brand.challenged) {
+    items.push({
+      icon: 'warning', label: 'warning', value: 'challenge page', warn: true,
+      tip: `The site served a bot or challenge screen instead of real content, so this brand read is unreliable. Treat every value with suspicion.`,
+    });
+  }
+
+  const cell = (m: (typeof items)[number]): string =>
+    `<div class="mi tip" data-tip="${esc(m.tip)}" tabindex="0">` +
+    `<span class="mk">${icon(m.icon)}<span>${m.label}</span></span>` +
+    `<span class="mono mv${m.warn ? ' warnv' : ''}">${esc(m.value)}</span></div>`;
+
+  const source = `<a class="src" href="${esc(design.source)}">${esc(from)}</a>`;
+  return `<div class="metabar">${items.map(cell).join('')}</div>
+    <p class="provenance">Every value in this report is measured live from ${source} on ${esc(when)}. The Feel below is synthesized from the cited sources, never inferred from the numbers.</p>`;
+}
+
+/** Small monoline instrument icons, inline so the report stays self-contained. */
+function icon(name: string): string {
+  const a = 'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
+  const svg = (inner: string): string => `<svg class="mi-ic" viewBox="0 0 24 24" ${a} aria-hidden="true">${inner}</svg>`;
+  switch (name) {
+    case 'mode':
+      return svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17a8.5 8.5 0 000-17z" fill="currentColor" stroke="none"/>');
+    case 'brand':
+      return svg('<rect x="4" y="4" width="16" height="16" rx="3.5"/><circle cx="12" cy="12" r="3.1" fill="currentColor" stroke="none"/>');
+    case 'motion':
+      return svg('<path d="M2.5 12h4l2.2-5.6L13 18.2l2.2-6.2H21.5"/>');
+    case 'archetype':
+      return svg('<path d="M4 4.5h6.4l9.1 9.1-6.4 6.4-9.1-9.1V4.5z"/><circle cx="8" cy="8" r="1.5" fill="currentColor" stroke="none"/>');
+    case 'sampled':
+      return svg('<g fill="currentColor" stroke="none"><circle cx="7" cy="7" r="1.5"/><circle cx="12" cy="7" r="1.5"/><circle cx="17" cy="7" r="1.5"/><circle cx="7" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="17" cy="12" r="1.5"/><circle cx="7" cy="17" r="1.5"/><circle cx="12" cy="17" r="1.5"/><circle cx="17" cy="17" r="1.5"/></g>');
+    case 'warning':
+      return svg('<path d="M12 4.5L21 20H3L12 4.5z"/><path d="M12 10.5v4"/><circle cx="12" cy="17.4" r="0.6" fill="currentColor" stroke="none"/>');
+    default:
+      return '';
+  }
+}
+
+function host(u: string): string {
+  try {
+    return new URL(u).hostname.replace(/^www\./, '');
+  } catch {
+    return u;
+  }
 }
 
 /** Inject @font-face for the brand fonts so the real face loads where the CSP
@@ -153,7 +222,7 @@ function rationaleSection(design: DesignModel): string {
     ${principles ? `<div class="sub">principles</div><ul class="rlist">${principles}</ul>` : ''}
     ${constraints ? `<div class="sub">constraints (what it refuses to do)</div><ul class="rlist neg">${constraints}</ul>` : ''}
     ${divergences}
-    ${srcList ? `<div class="sub">sources</div><ul class="rlist srcs">${srcList}</ul>` : ''}
+    ${srcList ? `<div class="sub">sources · where the feel comes from</div><ul class="rlist srcs">${srcList}</ul>` : ''}
   </section>`;
 }
 
@@ -350,10 +419,20 @@ h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute
 .bh-sig{display:flex;align-items:center;gap:10px;margin-top:26px}
 .bh-sig-band{height:18px;width:180px;border-radius:5px;display:block;border:1px solid rgba(128,128,128,.25)}
 .bh-sig-label{font-size:10px;color:var(--b-fg2);letter-spacing:.1em;text-transform:uppercase}
-.metabar{display:flex;flex-wrap:wrap;gap:12px 26px;padding:18px 6px 0}
-.metabar>div{display:flex;flex-direction:column;gap:2px}
-.mk{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.metabar{display:flex;flex-wrap:wrap;gap:14px 30px;padding:20px 6px 0}
+.mi{position:relative;display:flex;flex-direction:column;gap:3px}
+.mk{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:inline-flex;align-items:center;gap:5px}
+.mi-ic{width:13px;height:13px;flex:none;opacity:.9}
 .metabar .mono{font-size:15px}
+.mv{color:var(--ink);width:max-content}
+.tip{cursor:help}
+.tip .mv{border-bottom:1px dashed var(--muted);padding-bottom:1px}
+.mv.warnv{color:var(--warn)}.tip .mv.warnv{border-bottom-color:var(--warn)}
+.tip::after{content:attr(data-tip);position:absolute;left:0;top:calc(100% + 8px);z-index:30;width:max-content;max-width:270px;white-space:normal;text-align:left;background:var(--ink);color:var(--bg);font-family:var(--sans);font-size:11.5px;font-weight:400;line-height:1.45;letter-spacing:0;text-transform:none;padding:9px 11px;border-radius:7px;box-shadow:0 8px 24px rgba(0,0,0,.28);opacity:0;visibility:hidden;transform:translateY(-4px);transition:opacity .13s ease,transform .13s ease;pointer-events:none}
+.tip:hover::after,.tip:focus-visible::after{opacity:1;visibility:visible;transform:translateY(0)}
+.tip:focus-visible{outline:none}
+.provenance{font-size:12px;color:var(--muted);margin:14px 6px 0;max-width:72ch;line-height:1.5}
+.provenance .src{font-size:12px}
 .panel{margin-top:36px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:24px}
 .mode-block{margin-bottom:16px}.mode-tag{font-size:11px;color:var(--muted);margin-bottom:8px}
 .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
