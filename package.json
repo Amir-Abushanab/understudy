@@ -42,7 +42,8 @@
     "typecheck": "tsc --noEmit",
     "test": "tsc && node --test \"dist/**/*.test.js\"",
     "test:unit": "tsx --test src/analyze/*.test.ts src/emit/*.test.ts src/validate.test.ts src/capture/assemble.test.ts",
-    "validate": "node scripts/validate.mjs"
+    "validate": "node scripts/validate.mjs",
+    "verify-agents": "bash scripts/verify-agents.sh"
   },
   "dependencies": {
     "playwright": "^1.49.0",

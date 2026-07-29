@@ -93,6 +93,33 @@ node scripts/validate.mjs ./motion.yaml
 (or a global install / `npm link`) the same commands are available as
 `understudy capture ...`.
 
+## Use it from your coding agent
+
+understudy is one canonical `SKILL.md` plus a plain-Node CLI. The CLI measures
+the ground truth; your agent learns the feel on top and reconciles it against the
+measurement (`understudy context`). The same skill rides several agents through
+thin, generated entry points:
+
+| Agent           | Entry point                                     | Invoke                                                            |
+| --------------- | ----------------------------------------------- | ---------------------------------------------------------------- |
+| Claude Code     | `.claude-plugin/plugin.json` + `commands/`      | `/understudy <url>`                                               |
+| Codex (skill)   | `.agents/skills/understudy/`                    | `$understudy <url>`                                              |
+| Codex (plugin)  | `plugins/understudy/` + `.agents/plugins/`      | `codex plugin marketplace add .` then `codex plugin add understudy@understudy` |
+| OpenCode        | `.agents/skills/understudy/`                    | auto-discovered; ask it to learn a URL's brand                   |
+| Goose           | `recipes/understudy.yaml`                       | `goose run --recipe recipes/understudy.yaml --params url=<url>`  |
+
+The workflow, the rationale contract, and the never-quantize-a-vibe rule live in
+exactly one place: the root `SKILL.md`. Every discovery copy is generated from it
+by `pnpm sync-skill` and guarded against drift by the test suite. The copies are
+real files, not symlinks, because Codex skips symlinked skill files.
+
+Re-verify all the wiring at once (skill sync, manifest validity, and live
+discovery for whichever agent CLIs are installed, without mutating global state):
+
+```bash
+pnpm verify-agents
+```
+
 ## What it emits
 
 A `design-model.yaml`: the brand dimensions plus the `motion` block. Real output,
