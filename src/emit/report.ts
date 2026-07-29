@@ -96,6 +96,11 @@ function metaBar(design: DesignModel): string {
     {
       icon: 'mode', label: 'mode',
       value: brand.mode + (themed ? ' + ' + otherMode(brand.mode) : ''),
+      // Dual-mode ("dark + light") is self-evident. A single mode is not: explain
+      // that both schemes were emulated and the site rendered the same in each.
+      tip: themed
+        ? undefined
+        : `understudy emulated both light and dark, but ${from} renders the same under each, so it has a single ${brand.mode} mode. No separate light/dark theme was found on the page.`,
     },
     {
       icon: 'brand', label: 'brand conf',
@@ -115,6 +120,7 @@ function metaBar(design: DesignModel): string {
     {
       icon: 'sampled', label: 'sampled',
       value: brand.sampled.toLocaleString('en-US'),
+      tip: `The number of distinct on-page elements understudy read computed styles from to build this model. More elements means a fuller, higher-confidence picture. Read live from ${from}.`,
     },
   ];
   if (brand.challenged) {

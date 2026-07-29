@@ -53,19 +53,29 @@ test('report: renders the brand model as self-contained HTML', () => {
   assert.match(html, /AAA/, 'accessibility badges rendered');
 });
 
-test('report: meta bar has icons, percentage confidences, tooltips, and cited provenance', () => {
+test('report: meta bar has icons, percentage confidences, tooltips where they help, and cited provenance', () => {
   const html = toBrandReport(design());
   assert.match(html, /80%/, 'confidence rendered as a percentage, not a raw decimal');
   assert.match(html, /class="mi-ic"/, 'meta cells carry inline icons');
   assert.match(html, /class="mi tip"[^>]*data-tip="[^"]+"/, 'meta cells carry a tooltip hint');
+  assert.match(html, /elements understudy read/i, 'the sampled count is explained');
   assert.match(
     html,
     /class="provenance"[\s\S]*measured live from[\s\S]*example\.com/i,
     'provenance cites the live source',
   );
-  const icons = (html.match(/class="mi-ic"/g) ?? []).length;
-  const tips = (html.match(/data-tip="/g) ?? []).length;
-  assert.ok(icons > 0 && tips > 0 && tips < icons, 'every cell has an icon, but only some carry a tooltip');
+
+  // A dual-mode brand: "dark + light" is self-evident, so the mode cell carries
+  // no tooltip and there are fewer tooltips than cells.
+  const themed = design();
+  themed.brand.colors = {
+    ...themed.brand.colors,
+    dark: { background: '#0a0a0a', surface: '#161616', text1: '#f5f5f5', text2: '#aaaaaa', accent: '#5b5bff', border: '#222222' },
+  };
+  const themedHtml = toBrandReport(themed);
+  const icons = (themedHtml.match(/class="mi-ic"/g) ?? []).length;
+  const tips = (themedHtml.match(/data-tip="/g) ?? []).length;
+  assert.ok(tips < icons, 'a self-evident dual-mode cell stays plain (no tooltip)');
 });
 
 test('report: strips scripts and on* handlers from an injected logo SVG', () => {
