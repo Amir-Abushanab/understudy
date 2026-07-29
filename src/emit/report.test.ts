@@ -63,6 +63,9 @@ test('report: meta bar has icons, percentage confidences, tooltips, and cited pr
     /class="provenance"[\s\S]*measured live from[\s\S]*example\.com/i,
     'provenance cites the live source',
   );
+  const icons = (html.match(/class="mi-ic"/g) ?? []).length;
+  const tips = (html.match(/data-tip="/g) ?? []).length;
+  assert.ok(icons > 0 && tips > 0 && tips < icons, 'every cell has an icon, but only some carry a tooltip');
 });
 
 test('report: strips scripts and on* handlers from an injected logo SVG', () => {

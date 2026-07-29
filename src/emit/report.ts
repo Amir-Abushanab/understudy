@@ -90,11 +90,12 @@ function metaBar(design: DesignModel): string {
   const from = host(design.source);
   const when = design.capturedAt.slice(0, 10);
 
-  const items: { icon: string; label: string; value: string; tip: string; warn?: boolean }[] = [
+  // Self-evident cells (mode, sampled) carry no tip and no underline; only the
+  // metrics that genuinely need explaining do.
+  const items: { icon: string; label: string; value: string; tip?: string; warn?: boolean }[] = [
     {
       icon: 'mode', label: 'mode',
       value: brand.mode + (themed ? ' + ' + otherMode(brand.mode) : ''),
-      tip: `Primary color scheme the page renders in${themed ? ', with both light and dark measured' : ' (only this mode was found on the page)'}. Read live from ${from} on ${when}.`,
     },
     {
       icon: 'brand', label: 'brand conf',
@@ -114,7 +115,6 @@ function metaBar(design: DesignModel): string {
     {
       icon: 'sampled', label: 'sampled',
       value: brand.sampled.toLocaleString('en-US'),
-      tip: `Number of on-page elements understudy read to build this model. More elements means a fuller picture. Read live from ${from} on ${when}.`,
     },
   ];
   if (brand.challenged) {
@@ -124,10 +124,12 @@ function metaBar(design: DesignModel): string {
     });
   }
 
-  const cell = (m: (typeof items)[number]): string =>
-    `<div class="mi tip" data-tip="${esc(m.tip)}" tabindex="0">` +
-    `<span class="mk">${icon(m.icon)}<span>${m.label}</span></span>` +
-    `<span class="mono mv${m.warn ? ' warnv' : ''}">${esc(m.value)}</span></div>`;
+  const cell = (m: (typeof items)[number]): string => {
+    const attrs = m.tip ? ` class="mi tip" data-tip="${esc(m.tip)}" tabindex="0"` : ' class="mi"';
+    return `<div${attrs}>` +
+      `<span class="mk">${icon(m.icon)}<span>${m.label}</span></span>` +
+      `<span class="mono mv${m.warn ? ' warnv' : ''}">${esc(m.value)}</span></div>`;
+  };
 
   const source = `<a class="src" href="${esc(design.source)}">${esc(from)}</a>`;
   return `<div class="metabar">${items.map(cell).join('')}</div>
