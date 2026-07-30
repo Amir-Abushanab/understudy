@@ -133,6 +133,22 @@ test('report: type specimens apply styling (single-quoted family) and easings ar
   assert.match(html, /dot\.animate/, 'play handler animates the dot with the easing');
 });
 
+test('report: a font on Google Fonts links to its specimen; unknown families stay plain', () => {
+  const html = toBrandReport(design()); // fixture family is Inter, which is on Google Fonts
+  assert.match(
+    html,
+    /<a class="fam-link" href="https:\/\/fonts\.google\.com\/specimen\/Inter"[^>]*target="_blank"[^>]*>Inter<span class="fam-ext"/,
+    'a Google Fonts family links to its specimen, opening in a new tab',
+  );
+  assert.match(html, /\.fam-link\{/, 'font-link styling is present');
+
+  const d = design();
+  d.brand.typography.display = { ...d.brand.typography.display, family: 'Acme Private Sans' };
+  d.brand.typography.body = { ...d.brand.typography.body, family: 'Acme Private Sans' };
+  const plain = toBrandReport(d);
+  assert.doesNotMatch(plain, /fam-link[^<]*Acme Private Sans/, 'a family not in any catalog is never linked');
+});
+
 test('report: the heading scale keeps the real size hierarchy (no flat clamp)', () => {
   const d = design();
   d.brand.typography.headings = { h1: { size: 64, weight: 700 }, h2: { size: 40, weight: 600 }, h3: { size: 22, weight: 600 } };

@@ -14,6 +14,7 @@ import type { BrandModel, ColorTokens, Mode, ContrastCheck, TypographyRole } fro
 import type { MotionModel } from '../analyze/model.js';
 import { parseColor, luminance } from '../brand/color.js';
 import { colorFormats, gradientFormats, gradientStops, type ColorFormats, type ColorNotation } from './color-format.js';
+import { fontSource } from './font-sources.js';
 import { toBrandCss, toTailwindConfig, toDesignTokens } from './tokens.js';
 
 const EMPTY_ASSETS: ReadonlyMap<string, string> = new Map();
@@ -355,6 +356,14 @@ function typography(brand: BrandModel): string {
   return panel('Typography', specs + headings + ladder + scale + files);
 }
 
+/** A family name, linked to its repository specimen page when we can confirm one
+ * (Google Fonts). Otherwise plain text — never a guessed, possibly-dead link. */
+function familyLabel(family: string): string {
+  const src = fontSource(family);
+  if (!src) return esc(family);
+  return `<a class="fam-link" href="${esc(src.url)}" target="_blank" rel="noopener noreferrer" title="View ${esc(family)} on ${esc(src.repo)}">${esc(family)}<span class="fam-ext" aria-hidden="true">↗</span></a>`;
+}
+
 function specimen(label: string, role: TypographyRole): string {
   const tracked = role.letterSpacing && role.letterSpacing !== '0';
   const meta = [
@@ -386,7 +395,7 @@ function specimen(label: string, role: TypographyRole): string {
     role.variationSettings ? `font-variation-settings: ${role.variationSettings}` : '',
     role.opticalSizing ? `font-optical-sizing: ${role.opticalSizing}` : '', role.wordSpacing ? `word-spacing: ${role.wordSpacing}` : '',
   ].filter(Boolean).join('; ');
-  return `<div class="spec copyable" ${cv(copyCss)}><div class="spec-head"><span class="mono dim">${label}</span><span class="mono">${esc(role.family)} · ${esc(meta)}</span></div><div class="spec-line" style="${css}">Ag ${esc(role.family)}</div></div>`;
+  return `<div class="spec copyable" ${cv(copyCss)}><div class="spec-head"><span class="mono dim">${label}</span><span class="mono">${familyLabel(role.family)} · ${esc(meta)}</span></div><div class="spec-line" style="${css}">Ag ${esc(role.family)}</div></div>`;
 }
 
 function scales(brand: BrandModel): string {
@@ -586,6 +595,7 @@ function exportScript(): string {
     var r=el.getBoundingClientRect();toast.textContent='copied';toast.style.left=(r.left+r.width/2)+'px';toast.style.top=(r.top-6)+'px';toast.classList.add('show');
     clearTimeout(toast._t);toast._t=setTimeout(function(){toast.classList.remove('show');},1000);
   });});
+  document.querySelectorAll('.fam-link').forEach(function(a){a.addEventListener('click',function(e){e.stopPropagation();});}); // open the font page without also copying the specimen CSS
   document.querySelectorAll('[data-ease]').forEach(function(el){el.addEventListener('click',function(){
     var track=el.querySelector('.ease-play'),dot=el.querySelector('.ease-dot');
     if(!track||!dot||!dot.animate)return;
@@ -746,6 +756,9 @@ h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute
 .badge.ok{background:var(--ok)}.badge.warn{background:var(--warn)}.badge.bad{background:var(--bad)}
 .spec{padding:14px 0;border-bottom:1px solid var(--line)}
 .spec-head{display:flex;justify-content:space-between;gap:12px;font-size:11px;margin-bottom:8px}
+.fam-link{color:inherit;text-decoration:none;border-bottom:1px dotted var(--muted);white-space:nowrap}
+.fam-link:hover{color:var(--accent);border-bottom-color:var(--accent)}
+.fam-ext{opacity:.55;margin-left:3px;font-size:.82em}
 .spec-line{line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .wladder{display:flex;flex-direction:column;gap:9px;margin-bottom:4px}
 .wrow{display:flex;align-items:baseline;gap:14px}
