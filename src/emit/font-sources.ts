@@ -22,10 +22,16 @@ const CANONICAL: ReadonlyMap<string, string> = new Map(GOOGLE_FONTS.map((n) => [
 export function fontSource(family: string): FontSource | null {
   if (!family) return null;
   const name = family.trim().replace(/^["']|["']$/g, '');
-  const canonical = CANONICAL.get(name.toLowerCase());
-  if (!canonical) return null;
-  return {
-    url: `https://fonts.google.com/specimen/${canonical.replace(/ /g, '+')}`,
-    repo: 'Google Fonts',
-  };
+  // Sites ship the same face under a variable-font name ("Inter Variable",
+  // "Mona Sans VF"). Try the name as-is first, then the base name. The fallback
+  // still requires an exact catalog match, so it never invents a link for a face
+  // the catalog does not actually carry.
+  const base = name.replace(/[\s-]*(?:variable|vf)$/i, '').trim();
+  for (const candidate of base && base !== name ? [name, base] : [name]) {
+    const canonical = CANONICAL.get(candidate.toLowerCase());
+    if (canonical) {
+      return { url: `https://fonts.google.com/specimen/${canonical.replace(/ /g, '+')}`, repo: 'Google Fonts' };
+    }
+  }
+  return null;
 }

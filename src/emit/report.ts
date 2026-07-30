@@ -830,6 +830,7 @@ h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute
 .cfmt-btn{position:relative;z-index:1;background:none;border:none;color:var(--muted);font-family:var(--mono);font-size:11px;letter-spacing:.03em;cursor:pointer;padding:6px 10px;border-radius:6px;transition:color .2s ease}
 .cfmt-btn[aria-current="true"]{color:var(--panel);transition:color .2s ease .14s}
 .cfmt-btn:hover:not([aria-current="true"]){color:var(--ink)}
+.cfmt-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media(prefers-reduced-motion:reduce){.cfmt-ready .cfmt-thumb{transition:none}}
 .xport{position:relative;display:inline-flex;align-items:stretch;margin:20px 6px 0;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
 .xport-copy,.xport-toggle{background:none;border:none;color:var(--ink);font-family:var(--sans);font-size:13px;cursor:pointer;padding:9px 14px;display:inline-flex;align-items:center;gap:8px}
