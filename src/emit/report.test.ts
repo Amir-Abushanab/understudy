@@ -78,6 +78,24 @@ test('report: meta bar has icons, percentage confidences, tooltips where they he
   assert.ok(tips < icons, 'a self-evident dual-mode cell stays plain (no tooltip)');
 });
 
+test('report: a dual-mode brand gets a light/dark switch, one mode at a time', () => {
+  const d = design();
+  d.brand.colors = {
+    ...d.brand.colors,
+    dark: { background: '#0d1117', surface: '#161b22', text1: '#f0f6fc', text2: '#8b949e', accent: '#58a6ff', border: '#30363d' },
+  };
+  d.brand.accessibility = {
+    ...d.brand.accessibility,
+    dark: [{ pair: 'text1-on-background', ratio: 15, passes: ['AA-large', 'AA', 'AAA'] }],
+  };
+  const html = toBrandReport(d);
+  assert.match(html, /<main class="report" data-brand-mode="light">/, 'report root carries the active brand mode');
+  assert.match(html, /class="bh-mode"[\s\S]*?data-set-mode="light"[\s\S]*?data-set-mode="dark"/, 'hero has a light/dark switch');
+  assert.match(html, /class="mode-block" data-mode="dark"/, 'palette blocks are mode-tagged for hiding');
+  assert.match(html, /\[data-brand-mode="light"\] \[data-mode="dark"\]\{display:none\}/, 'CSS hides the inactive mode');
+  assert.doesNotMatch(toBrandReport(design()), /data-set-mode="/, 'a single-mode brand has no switch button');
+});
+
 test('report: inlines an SVG logo so currentColor stays visible', () => {
   const html = toBrandReport(design({ kind: 'svg', svg: '<svg viewBox="0 0 10 10"><path fill="currentColor" d="M0 0h10v10H0z"/></svg>' }));
   assert.match(html, /<span class="logo"><svg/, 'SVG logo is inlined, not wrapped in an <img>');

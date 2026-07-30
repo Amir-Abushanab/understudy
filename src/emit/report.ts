@@ -23,11 +23,14 @@ const EMPTY_ASSETS: ReadonlyMap<string, string> = new Map();
 export function toBrandReport(design: DesignModel, opts: { assets?: ReadonlyMap<string, string> } = {}): string {
   const { brand, motion } = design;
   const assets = opts.assets ?? EMPTY_ASSETS;
+  // A dual-mode brand shows one mode at a time, switched via the hero control;
+  // data-brand-mode drives the hero, palette, and accessibility display.
+  const dual = Object.keys(brand.colors).length > 1;
   return [
     fontFaceStyle(brand, assets),
     style(),
     heroVarsCss(brand),
-    `<main class="report">`,
+    `<main class="report"${dual ? ` data-brand-mode="${brand.mode}"` : ''}>`,
     brandHero(design, assets),
     metaBar(design),
     exportBar(),
@@ -59,7 +62,7 @@ function brandHero(design: DesignModel, assets: ReadonlyMap<string, string>): st
     : `<span class="bh-eyebrow">measured brand identity</span>`;
   return `
 <header class="brand-hero">
-  <div class="bh-top">${logo}${eyebrow}</div>
+  <div class="bh-top"><div class="bh-brand">${logo}${eyebrow}</div>${modeSwitch(brand)}</div>
   <h1 class="bh-name">${esc(design.name)}</h1>
   <a class="bh-src" href="${esc(design.source)}">${esc(design.source)}</a>
   <div class="bh-cta">
@@ -71,8 +74,19 @@ function brandHero(design: DesignModel, assets: ReadonlyMap<string, string>): st
 </header>`;
 }
 
-/** Hero brand variables as CSS, so a themed brand's hero follows the viewer's
- * light/dark theme, while a single-mode brand's hero stays fixed to its mode. */
+/** A light/dark switch for a dual-mode brand, wearing the brand's own colors.
+ * Empty for a single-mode brand. */
+function modeSwitch(brand: BrandModel): string {
+  const has = brand.colors;
+  if (Object.keys(has).length < 2) return '';
+  const btn = (m: Mode): string =>
+    has[m] ? `<button type="button" class="bh-mode-btn" data-set-mode="${m}"${m === brand.mode ? ' aria-current="true"' : ''}>${m}</button>` : '';
+  return `<div class="bh-mode" role="group" aria-label="Brand color mode">${btn('light')}${btn('dark')}</div>`;
+}
+
+/** Hero brand variables as CSS. A single-mode brand's hero is fixed to its mode;
+ * a dual-mode brand's hero follows the mode switch (data-brand-mode), so the whole
+ * report shows one mode at a time rather than both stacked. */
 function heroVarsCss(brand: BrandModel): string {
   const primary = brand.colors[brand.mode];
   if (!primary) return '';
@@ -82,10 +96,8 @@ function heroVarsCss(brand: BrandModel): string {
   const rules = [`.brand-hero{${vars(primary)};--b-display:${cssFam(disp.family)};--b-display-w:${disp.weight}}`];
   const { light, dark } = brand.colors;
   if (light && dark) {
-    rules.push(`@media(prefers-color-scheme:dark){.brand-hero{${vars(dark)}}}`);
-    rules.push(`@media(prefers-color-scheme:light){.brand-hero{${vars(light)}}}`);
-    rules.push(`:root[data-theme="dark"] .brand-hero{${vars(dark)}}`);
-    rules.push(`:root[data-theme="light"] .brand-hero{${vars(light)}}`);
+    rules.push(`.report[data-brand-mode="light"] .brand-hero{${vars(light)}}`);
+    rules.push(`.report[data-brand-mode="dark"] .brand-hero{${vars(dark)}}`);
   }
   return `<style>${rules.join('')}</style>`;
 }
@@ -253,7 +265,7 @@ function palette(brand: BrandModel): string {
         ['background', c.background], ['surface', c.surface], ['text1', c.text1],
         ['text2', c.text2], ['accent', c.accent], ['border', c.border],
       ] as const;
-      return `<div class="mode-block"><div class="mode-tag mono">${mode}</div><div class="swatches">${roles.map(([n, v]) => swatch(n, v)).join('')}</div></div>`;
+      return `<div class="mode-block" data-mode="${mode}"><div class="mode-tag mono">${mode}</div><div class="swatches">${roles.map(([n, v]) => swatch(n, v)).join('')}</div></div>`;
     })
     .join('');
   const accents = brand.accents.length > 1 ? `<div class="sub">palette</div><div class="chips">${brand.accents.map((a) => chip(a)).join('')}</div>` : '';
@@ -275,7 +287,7 @@ function accessibility(brand: BrandModel): string {
   const rows = (Object.entries(brand.accessibility) as [Mode, ContrastCheck[]][])
     .flatMap(([mode, checks]) =>
       (checks || []).map(
-        (ck) => `<tr><td class="mono dim">${mode}</td><td>${esc(ck.pair)}</td><td class="mono num">${ck.ratio.toFixed(2)}</td><td>${levelBadges(ck.passes)}</td></tr>`,
+        (ck) => `<tr data-mode="${mode}"><td class="mono dim">${mode}</td><td>${esc(ck.pair)}</td><td class="mono num">${ck.ratio.toFixed(2)}</td><td>${levelBadges(ck.passes)}</td></tr>`,
       ),
     )
     .join('');
@@ -478,6 +490,12 @@ function exportScript(): string {
     document.addEventListener('click',function(){menu.hidden=true;});
     menu.querySelectorAll('[data-fmt]').forEach(function(it){it.addEventListener('click',function(e){e.stopPropagation();root.setAttribute('data-fmt',it.getAttribute('data-fmt'));cur.innerHTML=it.querySelector('.xport-lp').innerHTML;menu.hidden=true;});});
     cp.addEventListener('click',function(){copy(codeFor(root.getAttribute('data-fmt')),cp);});}
+  var report=document.querySelector('.report[data-brand-mode]');
+  if(report){document.querySelectorAll('[data-set-mode]').forEach(function(b){b.addEventListener('click',function(){
+    report.setAttribute('data-brand-mode',b.getAttribute('data-set-mode'));
+    b.parentNode.querySelectorAll('[data-set-mode]').forEach(function(x){x.removeAttribute('aria-current');});
+    b.setAttribute('aria-current','true');
+  });});}
 })();</script>`;
 }
 
@@ -559,7 +577,11 @@ h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute
 .logo{display:inline-flex;color:var(--b-fg)}
 .logo img,.logo svg{height:30px;width:auto;max-width:150px;display:block}
 .brand-hero{position:relative;margin-top:4px;padding:44px 40px;border-radius:14px;background:var(--b-bg);color:var(--b-fg);border:1px solid var(--b-border);overflow:hidden}
-.bh-top{display:flex;align-items:center;gap:14px;margin-bottom:20px}
+.bh-top{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:20px}
+.bh-brand{display:inline-flex;align-items:center;gap:14px;min-width:0}
+.bh-mode{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--b-border);border-radius:8px;flex:none}
+.bh-mode-btn{background:none;border:none;color:var(--b-fg2);font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;cursor:pointer;padding:5px 12px;border-radius:6px}
+.bh-mode-btn[aria-current="true"]{background:var(--b-accent);color:var(--b-on-accent)}
 .bh-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--b-accent)}
 .bh-name{font-family:var(--b-display);font-weight:var(--b-display-w);font-size:clamp(38px,7vw,68px);line-height:1.02;letter-spacing:-.02em;margin:0 0 10px;color:var(--b-fg);text-wrap:balance}
 .bh-src{color:var(--b-fg2);text-decoration:none;font-size:14px}.bh-src:hover{color:var(--b-accent)}
@@ -586,6 +608,8 @@ h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute
 .provenance .src{font-size:12px}
 .panel{margin-top:36px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:24px}
 .mode-block{margin-bottom:16px}.mode-tag{font-size:11px;color:var(--muted);margin-bottom:8px}
+.report[data-brand-mode="light"] [data-mode="dark"]{display:none}
+.report[data-brand-mode="dark"] [data-mode="light"]{display:none}
 .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .sw{display:flex;align-items:center;gap:9px;padding:7px;border:1px solid var(--line);border-radius:7px}
 .sw-chip{width:26px;height:26px;border-radius:5px;border:1px solid rgba(128,128,128,.28);flex:none}
