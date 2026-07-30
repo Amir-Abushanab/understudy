@@ -80,10 +80,27 @@ test('report: meta bar has icons, percentage confidences, tooltips where they he
 
 test('report: individual colors, gradients, and settings are click-to-copy', () => {
   const html = toBrandReport(design());
-  assert.match(html, /class="sw copyable" data-copy-value="#5b5bff"/, 'a color swatch copies its hex');
+  assert.match(html, /class="sw copyable color-cell"[^>]*data-copy-value="oklch\(/, 'a color swatch copies its color (OKLCH by default)');
   assert.match(html, /class="grad copyable" data-copy-value="linear-gradient/, 'a gradient copies its value');
   assert.match(html, /data-copy-value="16px"/, 'a type-scale value copies');
   assert.match(html, /querySelectorAll\('\[data-copy-value\]'\)/, 'click-to-copy handler is wired');
+});
+
+test('report: colors default to OKLCH, with a header switch to hex/rgb/hsl', () => {
+  const html = toBrandReport(design());
+  // The accent #5b5bff (91,91,255) renders in OKLCH by default...
+  assert.match(html, /class="sw-val mono color-val">oklch\(/, 'a swatch shows OKLCH by default');
+  assert.match(html, /data-copy-value="oklch\(/, 'copy value defaults to OKLCH');
+  // ...while carrying every notation for in-place re-notation.
+  assert.match(html, /data-hex="#5b5bff"/, 'hex notation embedded on the cell');
+  assert.match(html, /data-rgb="rgb\(91, 91, 255\)"/, 'rgb notation embedded on the cell');
+  assert.match(html, /data-hsl="hsl\(/, 'hsl notation embedded on the cell');
+  // The header switch, OKLCH active by default.
+  assert.match(html, /data-set-cfmt="oklch"[^>]*aria-current="true"/, 'OKLCH is the active default');
+  assert.match(html, /data-set-cfmt="hex"/, 'hex is a switch option');
+  assert.match(html, /data-set-cfmt="rgb"/, 'rgb is a switch option');
+  assert.match(html, /data-set-cfmt="hsl"/, 'hsl is a switch option');
+  assert.match(html, /function setCfmt/, 're-notation handler is wired');
 });
 
 test('report: type specimens apply styling (single-quoted family) and easings are playable', () => {

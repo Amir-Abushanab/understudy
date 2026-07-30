@@ -13,6 +13,7 @@ import type { DesignModel } from './design-model.js';
 import type { BrandModel, ColorTokens, Mode, ContrastCheck, TypographyRole } from '../brand/types.js';
 import type { MotionModel } from '../analyze/model.js';
 import { parseColor, luminance } from '../brand/color.js';
+import { colorFormats, type ColorNotation } from './color-format.js';
 import { toBrandCss, toTailwindConfig, toDesignTokens } from './tokens.js';
 
 const EMPTY_ASSETS: ReadonlyMap<string, string> = new Map();
@@ -33,7 +34,7 @@ export function toBrandReport(design: DesignModel, opts: { assets?: ReadonlyMap<
     `<main class="report"${dual ? ` data-brand-mode="${brand.mode}"` : ''}>`,
     brandHero(design, assets),
     metaBar(design),
-    exportBar(),
+    `<div class="toolbar">${exportBar()}${colorFormatBar()}</div>`,
     rationaleSection(design),
     palette(brand), accessibility(brand), typography(brand), scales(brand), elevation(brand), gradients(brand), motionSection(motion),
     exportsSection(design),
@@ -68,7 +69,7 @@ function brandHero(design: DesignModel, assets: ReadonlyMap<string, string>): st
   <div class="bh-cta">
     <span class="bh-btn">Primary action</span>
     <span class="bh-btn ghost">Secondary</span>
-    <span class="bh-swatch mono">${esc(c.accent)}</span>
+    ${(() => { const { attrs, shown } = colorCell(c.accent); return `<span class="bh-swatch mono copyable color-cell" ${attrs} data-copy-value="${esc(shown)}" title="Copy color"><span class="color-val">${esc(shown)}</span></span>`; })()}
   </div>
   ${grad}
 </header>`;
@@ -282,11 +283,27 @@ function cv(value: string): string {
   return `data-copy-value="${esc(value)}" title="Copy ${esc(value)}"`;
 }
 
+/** The report opens showing colors in OKLCH; the header switch flips notation. */
+const DEFAULT_NOTATION: ColorNotation = 'oklch';
+
+/**
+ * A color cell carries the same color in every notation as data-* attributes and
+ * displays the default one. The header switch rewrites the visible text and the
+ * copy value from these, so every color re-notates in place with no re-render.
+ */
+function colorCell(value: string): { attrs: string; shown: string } {
+  const f = colorFormats(value);
+  const attrs = `data-oklch="${esc(f.oklch)}" data-hex="${esc(f.hex)}" data-rgb="${esc(f.rgb)}" data-hsl="${esc(f.hsl)}"`;
+  return { attrs, shown: f[DEFAULT_NOTATION] };
+}
+
 function swatch(name: string, value: string): string {
-  return `<div class="sw copyable" data-copy-value="${esc(value)}" title="Copy ${esc(value)}"><span class="sw-chip" style="background:${esc(value)}"></span><span class="sw-name">${name}</span><span class="sw-val mono">${esc(value)}</span></div>`;
+  const { attrs, shown } = colorCell(value);
+  return `<div class="sw copyable color-cell" ${attrs} data-copy-value="${esc(shown)}" title="Copy color"><span class="sw-chip" style="background:${esc(value)}"></span><span class="sw-body"><span class="sw-name">${name}</span><span class="sw-val mono color-val">${esc(shown)}</span></span></div>`;
 }
 function chip(value: string, label?: string): string {
-  return `<div class="pchip copyable" data-copy-value="${esc(value)}" title="Copy ${esc(value)}"><span class="sw-chip sm" style="background:${esc(value)}"></span><span class="mono">${label ? label + ' ' : ''}${esc(value)}</span></div>`;
+  const { attrs, shown } = colorCell(value);
+  return `<div class="pchip copyable color-cell" ${attrs} data-copy-value="${esc(shown)}" title="Copy color"><span class="sw-chip sm" style="background:${esc(value)}"></span><span class="mono">${label ? label + ' ' : ''}<span class="color-val">${esc(shown)}</span></span></div>`;
 }
 
 function accessibility(brand: BrandModel): string {
@@ -433,6 +450,24 @@ function exportsSection(design: DesignModel): string {
 /** A split-button at the top: copy the selected format, or pick another from the
  * dropdown (each shown with its logo). Reads the code from the Export panel's
  * <pre> blocks by id, so there is one source for the token text. */
+/** Header control that re-notates every color in the report. OKLCH leads as the
+ * default; hex / rgb / hsl stay one click away for pasting into older tooling. */
+function colorFormatBar(): string {
+  const opts: { fmt: ColorNotation; label: string }[] = [
+    { fmt: 'oklch', label: 'OKLCH' },
+    { fmt: 'hex', label: 'HEX' },
+    { fmt: 'rgb', label: 'RGB' },
+    { fmt: 'hsl', label: 'HSL' },
+  ];
+  const btns = opts
+    .map(
+      (o) =>
+        `<button type="button" class="cfmt-btn" data-set-cfmt="${o.fmt}"${o.fmt === DEFAULT_NOTATION ? ' aria-current="true"' : ''}>${o.label}</button>`,
+    )
+    .join('');
+  return `<div class="cfmt-bar"><span class="cfmt-cap mono">color format</span><div class="cfmt" role="group" aria-label="Color notation">${btns}</div></div>`;
+}
+
 function exportBar(): string {
   const items = [
     { fmt: 'tailwind', label: 'Tailwind' },
@@ -527,6 +562,15 @@ function exportScript(): string {
     var dist=Math.max(0,track.clientWidth-dot.offsetWidth-2);
     dot.animate([{transform:'translateX(0)'},{transform:'translateX('+dist+'px)'}],{duration:900,easing:el.getAttribute('data-ease'),fill:'forwards'});
   });});
+  function setCfmt(fmt){
+    document.querySelectorAll('.color-cell').forEach(function(el){
+      var v=el.getAttribute('data-'+fmt);if(!v)return;
+      var t=el.querySelector('.color-val');if(t)t.textContent=v;
+      el.setAttribute('data-copy-value',v);
+    });
+    document.querySelectorAll('[data-set-cfmt]').forEach(function(b){b.setAttribute('aria-current',b.getAttribute('data-set-cfmt')===fmt?'true':'false');});
+  }
+  document.querySelectorAll('[data-set-cfmt]').forEach(function(b){b.addEventListener('click',function(){setCfmt(b.getAttribute('data-set-cfmt'));});});
 })();</script>`;
 }
 
@@ -645,11 +689,12 @@ h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute
 .mode-block{margin-bottom:16px}.mode-tag{font-size:11px;color:var(--muted);margin-bottom:8px}
 .report[data-brand-mode="light"] [data-mode="dark"]{display:none}
 .report[data-brand-mode="dark"] [data-mode="light"]{display:none}
-.swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
-.sw{display:flex;align-items:center;gap:9px;padding:7px;border:1px solid var(--line);border-radius:7px}
+.swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.sw{display:flex;align-items:center;gap:10px;padding:8px 9px;border:1px solid var(--line);border-radius:7px}
 .sw-chip{width:26px;height:26px;border-radius:5px;border:1px solid rgba(128,128,128,.28);flex:none}
 .sw-chip.sm{width:16px;height:16px}
-.sw-name{font-size:12px;flex:1}.sw-val{font-size:11px;color:var(--muted)}
+.sw-body{display:flex;flex-direction:column;gap:2px;min-width:0}
+.sw-name{font-size:12px}.sw-val{font-size:11px;color:var(--muted)}
 .sub{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:18px 0 8px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .pchip{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border:1px solid var(--line);border-radius:999px;font-size:12px}
@@ -712,6 +757,14 @@ h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute
 .cp:hover{border-color:var(--accent);color:var(--accent)}
 .cp.ok{color:var(--ok);border-color:var(--ok)}
 .flogo{height:15px;width:auto;flex:none;display:block}
+.toolbar{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin:20px 6px 0}
+.toolbar .xport{margin:0}
+.cfmt-bar{display:inline-flex;align-items:center;gap:9px}
+.cfmt-cap{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.cfmt{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
+.cfmt-btn{background:none;border:none;color:var(--muted);font-family:var(--mono);font-size:11px;letter-spacing:.03em;cursor:pointer;padding:6px 10px;border-radius:6px}
+.cfmt-btn[aria-current="true"]{background:var(--accent);color:var(--panel)}
+.cfmt-btn:hover:not([aria-current="true"]){color:var(--ink)}
 .xport{position:relative;display:inline-flex;align-items:stretch;margin:20px 6px 0;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
 .xport-copy,.xport-toggle{background:none;border:none;color:var(--ink);font-family:var(--sans);font-size:13px;cursor:pointer;padding:9px 14px;display:inline-flex;align-items:center;gap:8px}
 .xport-copy{font-weight:600;border-right:1px solid var(--line);border-radius:9px 0 0 9px}
