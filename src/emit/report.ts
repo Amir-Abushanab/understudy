@@ -13,6 +13,7 @@ import type { DesignModel } from './design-model.js';
 import type { BrandModel, ColorTokens, Mode, ContrastCheck, TypographyRole } from '../brand/types.js';
 import type { MotionModel } from '../analyze/model.js';
 import { parseColor, luminance } from '../brand/color.js';
+import { toBrandCss, toTailwindConfig, toDesignTokens } from './tokens.js';
 
 const EMPTY_ASSETS: ReadonlyMap<string, string> = new Map();
 
@@ -31,6 +32,7 @@ export function toBrandReport(design: DesignModel, opts: { assets?: ReadonlyMap<
     metaBar(design),
     rationaleSection(design),
     palette(brand), accessibility(brand), typography(brand), scales(brand), elevation(brand), gradients(brand), motionSection(motion),
+    exportsSection(design),
     footer(design),
     `</main>`,
   ].join('\n');
@@ -367,6 +369,27 @@ function easeCurve(c: readonly number[]): string {
   return `<svg class="curve" viewBox="-6 -6 ${w + 12} ${h + 12}" width="${w}" height="${h}"><line x1="0" y1="${h}" x2="${w}" y2="0" class="diag"/><path d="M0 ${h} C ${x1} ${y1} ${x2} ${y2} ${w} 0" class="cv"/></svg>`;
 }
 
+/** Design-token exports embedded in the page: Tailwind, CSS variables, and W3C
+ * DTCG JSON, each downloadable via a data: URI (no JS) with the code viewable
+ * inline. Same output as `understudy capture --tailwind / --css / --dtcg`. */
+function exportsSection(design: DesignModel): string {
+  const files = [
+    { name: 'tailwind.config.js', label: 'Tailwind', note: 'theme.extend', mime: 'text/javascript', code: toTailwindConfig(design) },
+    { name: 'brand.css', label: 'CSS variables', note: ':root custom properties', mime: 'text/css', code: toBrandCss(design) },
+    { name: 'design-tokens.json', label: 'Design Tokens', note: 'W3C DTCG', mime: 'application/json', code: JSON.stringify(toDesignTokens(design), null, 2) },
+  ];
+  const block = (f: (typeof files)[number]): string => {
+    const href = `data:${f.mime};charset=utf-8,${encodeURIComponent(f.code)}`;
+    return `<div class="exp">
+      <div class="exp-head"><span class="exp-name">${f.label} <span class="dim">${f.note}</span></span><a class="dl mono" download="${esc(f.name)}" href="${href}">download ${esc(f.name)}</a></div>
+      <details><summary class="mono dim small">view code</summary><pre class="code mono">${esc(f.code)}</pre></details>
+    </div>`;
+  };
+  return `<section class="panel"><h2 class="mono">Export</h2>
+    <p class="dim small exp-intro">Design tokens generated from the measured model, ready to drop into a project. Same output as <span class="mono">understudy capture --tailwind / --css / --dtcg</span>.</p>
+    <div class="exports">${files.map(block).join('')}</div></section>`;
+}
+
 function footer(design: DesignModel): string {
   return `<footer class="foot"><span class="mono">measured by understudy</span><span class="mono dim">${esc(design.capturedAt)}</span></footer>`;
 }
@@ -520,6 +543,16 @@ h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute
 .cite{color:var(--accent);text-decoration:none;font-size:11px;vertical-align:super}
 .qtag{font-size:9px;color:var(--muted);border:1px solid var(--line);border-radius:3px;padding:1px 5px;margin-left:4px}
 .foot{margin-top:36px;padding-top:18px;border-top:1px solid var(--line);display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+.exp-intro{margin:0 0 16px}
+.exports{display:flex;flex-direction:column;gap:12px}
+.exp{border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.exp-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px}
+.exp-name{font-size:13px;font-weight:600}
+.dl{font-size:12px;color:var(--accent);text-decoration:none;border:1px solid var(--accent);border-radius:6px;padding:5px 11px;white-space:nowrap}
+.dl:hover{background:var(--accent);color:var(--panel)}
+.exp details{margin-top:10px}
+.exp summary{cursor:pointer;width:max-content}
+.code{margin:10px 0 0;padding:12px;background:var(--faint);border-radius:6px;font-size:11.5px;line-height:1.5;overflow:auto;max-height:340px;white-space:pre}
 @media(max-width:640px){.head{flex-direction:column}h1{font-size:26px}}
 </style>`;
 }

@@ -102,6 +102,16 @@ test('report: inlines fonts and a raster logo from the assets map', () => {
   assert.match(toBrandReport(d), /cdn\.example\.com\/foo\.woff2/, 'falls back to the URL without an assets map');
 });
 
+test('report: has an export panel with Tailwind, CSS, and DTCG downloads and no JS', () => {
+  const html = toBrandReport(design());
+  assert.match(html, /<h2 class="mono">Export<\/h2>/, 'export panel present');
+  assert.match(html, /download="tailwind\.config\.js"/, 'Tailwind download');
+  assert.match(html, /download="brand\.css"/, 'CSS variables download');
+  assert.match(html, /download="design-tokens\.json"/, 'DTCG download');
+  assert.match(html, /href="data:text\/javascript;charset=utf-8,/, 'Tailwind is an inline data: download');
+  assert.doesNotMatch(html, /<script/i, 'the report ships no JavaScript (data: links + <details>)');
+});
+
 test('report: strips scripts and on* handlers from an injected logo SVG', () => {
   const evil: LogoAsset = { kind: 'svg', svg: '<svg onload="alert(1)"><script>alert(2)</script><rect fill="#f00"/></svg>' };
   const html = toBrandReport(design(evil));
