@@ -106,6 +106,7 @@ thin, generated entry points:
 | Codex (skill)   | `.agents/skills/understudy/`                    | `$understudy <url>`                                              |
 | Codex (plugin)  | `plugins/understudy/` + `.agents/plugins/`      | `codex plugin marketplace add .` then `codex plugin add understudy@understudy` |
 | OpenCode        | `.agents/skills/understudy/`                    | auto-discovered; ask it to learn a URL's brand                   |
+| Kilo Code       | `.agents/skills/understudy/`                    | auto-discovered by default; ask it to learn a URL's brand       |
 | Goose           | `recipes/understudy.yaml`                       | `goose run --recipe recipes/understudy.yaml --params url=<url>`  |
 
 The workflow, the rationale contract, and the never-quantize-a-vibe rule live in

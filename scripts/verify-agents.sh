@@ -58,6 +58,20 @@ if command -v codex >/dev/null 2>&1; then
   else warn "codex did not register the in-repo skill (env dependent; try: codex plugin marketplace add .)"; fi
 else skip "codex not installed"; fi
 
+echo "[7] Kilo Code discovers the skill (clean isolated home)"
+# Kilo's CLI is an OpenCode derivative, so it shares `debug skill` and scans
+# `.agents/skills/` by default. It installs to ~/.kilo/bin and may not be on PATH.
+kilo_bin="$(command -v kilo 2>/dev/null || { [ -x "$HOME/.kilo/bin/kilo" ] && echo "$HOME/.kilo/bin/kilo"; })"
+if [ -n "$kilo_bin" ]; then
+  tmp="$(mktemp -d)"; mkdir -p "$tmp"/{d,s,c,h}
+  XDG_DATA_HOME="$tmp/d" XDG_STATE_HOME="$tmp/s" XDG_CONFIG_HOME="$tmp/c" XDG_CACHE_HOME="$tmp/h" \
+    "$kilo_bin" debug skill >"$tmp/skills.json" 2>/dev/null
+  if grep -q 'agents/skills/understudy/SKILL.md' "$tmp/skills.json"; then
+    ok "kilo debug skill lists understudy"
+  else warn "kilo did not list understudy (env dependent)"; fi
+  rm -rf "$tmp"
+else skip "kilo not installed"; fi
+
 echo
 if [ "$fail" -eq 0 ]; then echo "all hard checks passed"; else echo "hard-check FAILURES above"; fi
 exit "$fail"

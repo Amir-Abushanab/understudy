@@ -20,8 +20,9 @@ rationale contract, and the never-quantize-a-vibe rule.
   (`.claude-plugin/plugin.json`), invoked as `/understudy <url>`.
 - **Goose:** run `goose run --recipe recipes/understudy.yaml --params
   url=<url>`. The recipe defers to this same `SKILL.md` (no duplicated workflow)
-  and uses the builtin `developer` extension for shell access. OpenCode discovers
-  the skill from `.agents/skills/` too.
+  and uses the builtin `developer` extension for shell access.
+- **OpenCode and Kilo Code:** both scan `.agents/skills/` by default and
+  discover the skill with no extra wiring; ask the agent to learn a URL's brand.
 
 The CLI itself is plain Node and agent-agnostic — `node dist/index.js capture
 <url>` runs anywhere, with or without an agent. Build it once with `pnpm install
