@@ -78,6 +78,14 @@ test('report: meta bar has icons, percentage confidences, tooltips where they he
   assert.ok(tips < icons, 'a self-evident dual-mode cell stays plain (no tooltip)');
 });
 
+test('report: individual colors, gradients, and settings are click-to-copy', () => {
+  const html = toBrandReport(design());
+  assert.match(html, /class="sw copyable" data-copy-value="#5b5bff"/, 'a color swatch copies its hex');
+  assert.match(html, /class="grad copyable" data-copy-value="linear-gradient/, 'a gradient copies its value');
+  assert.match(html, /data-copy-value="16px"/, 'a type-scale value copies');
+  assert.match(html, /querySelectorAll\('\[data-copy-value\]'\)/, 'click-to-copy handler is wired');
+});
+
 test('report: a dual-mode brand gets a light/dark switch, one mode at a time', () => {
   const d = design();
   d.brand.colors = {

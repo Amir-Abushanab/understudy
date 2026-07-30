@@ -276,11 +276,17 @@ function palette(brand: BrandModel): string {
   return panel('Color', swatchRows + accents + states + hover);
 }
 
+/** Attributes that make an element click-to-copy its own value (add the
+ * `copyable` class to the element's own class list alongside this). */
+function cv(value: string): string {
+  return `data-copy-value="${esc(value)}" title="Copy ${esc(value)}"`;
+}
+
 function swatch(name: string, value: string): string {
-  return `<div class="sw"><span class="sw-chip" style="background:${esc(value)}"></span><span class="sw-name">${name}</span><span class="sw-val mono">${esc(value)}</span></div>`;
+  return `<div class="sw copyable" data-copy-value="${esc(value)}" title="Copy ${esc(value)}"><span class="sw-chip" style="background:${esc(value)}"></span><span class="sw-name">${name}</span><span class="sw-val mono">${esc(value)}</span></div>`;
 }
 function chip(value: string, label?: string): string {
-  return `<div class="pchip"><span class="sw-chip sm" style="background:${esc(value)}"></span><span class="mono">${label ? label + ' ' : ''}${esc(value)}</span></div>`;
+  return `<div class="pchip copyable" data-copy-value="${esc(value)}" title="Copy ${esc(value)}"><span class="sw-chip sm" style="background:${esc(value)}"></span><span class="mono">${label ? label + ' ' : ''}${esc(value)}</span></div>`;
 }
 
 function accessibility(brand: BrandModel): string {
@@ -304,12 +310,12 @@ function typography(brand: BrandModel): string {
   const t = brand.typography;
   const specs = [specimen('display', t.display), specimen('body', t.body), t.mono ? specimen('mono', t.mono) : '', t.label ? specimen('label', t.label) : ''].join('');
   const headings = t.headings && Object.keys(t.headings).length > 0
-    ? `<div class="sub">heading scale</div><div class="hscale">${Object.entries(t.headings).map(([lvl, h]) => `<div class="hrow"><span class="mono dim hlvl">${lvl}</span><span class="hsize" style="font-family:${cssFam(t.display.family)};font-size:${Math.min(h.size, 42)}px;font-weight:${h.weight}">${lvl.toUpperCase()}</span><span class="mono dim">${h.size}px · w${h.weight}</span></div>`).join('')}</div>`
+    ? `<div class="sub">heading scale</div><div class="hscale">${Object.entries(t.headings).map(([lvl, h]) => `<div class="hrow copyable" ${cv(`${h.size}px`)}><span class="mono dim hlvl">${lvl}</span><span class="hsize" style="font-family:${cssFam(t.display.family)};font-size:${Math.min(h.size, 42)}px;font-weight:${h.weight}">${lvl.toUpperCase()}</span><span class="mono dim">${h.size}px · w${h.weight}</span></div>`).join('')}</div>`
     : '';
   const ladder = t.weights.length > 1
-    ? `<div class="sub">weight ladder</div><div class="wladder">${t.weights.map((w) => `<div class="wrow"><span class="mono dim">${w}</span><span class="wsample" style="font-family:${cssFam(t.body.family)};font-weight:${w}">Grumpy wizards make toxic brew</span></div>`).join('')}</div>`
+    ? `<div class="sub">weight ladder</div><div class="wladder">${t.weights.map((w) => `<div class="wrow copyable" ${cv(String(w))}><span class="mono dim">${w}</span><span class="wsample" style="font-family:${cssFam(t.body.family)};font-weight:${w}">Grumpy wizards make toxic brew</span></div>`).join('')}</div>`
     : '';
-  const scale = t.scale.length ? `<div class="sub">size scale${t.scaleRatio ? ` · ratio ${t.scaleRatio}` : ''}${t.measure ? ` · measure ${t.measure} char/line` : ''}</div><div class="chips">${t.scale.map((s) => `<span class="pchip mono">${s}px</span>`).join('')}</div>` : '';
+  const scale = t.scale.length ? `<div class="sub">size scale${t.scaleRatio ? ` · ratio ${t.scaleRatio}` : ''}${t.measure ? ` · measure ${t.measure} char/line` : ''}</div><div class="chips">${t.scale.map((s) => `<span class="pchip mono copyable" ${cv(`${s}px`)}>${s}px</span>`).join('')}</div>` : '';
   const files = t.fontFiles && t.fontFiles.length ? `<div class="sub">font files</div><ul class="files mono">${t.fontFiles.slice(0, 6).map((f) => `<li>${esc(shortUrl(f))}</li>`).join('')}</ul>` : '';
   return panel('Typography', specs + headings + ladder + scale + files);
 }
@@ -335,17 +341,27 @@ function specimen(label: string, role: TypographyRole): string {
     role.opticalSizing ? `font-optical-sizing:${role.opticalSizing}` : '',
     role.wordSpacing ? `word-spacing:${role.wordSpacing}` : '',
   ].filter(Boolean).join(';');
-  return `<div class="spec"><div class="spec-head"><span class="mono dim">${label}</span><span class="mono">${esc(role.family)} · ${esc(meta)}</span></div><div class="spec-line" style="${css}">Ag ${esc(role.family)}</div></div>`;
+  // A copyable CSS declaration with the role's real (unclamped) values.
+  const copyCss = [
+    `font-family: ${cssFam(role.family)}`, `font-size: ${role.size}px`, `font-weight: ${role.weight}`,
+    role.lineHeight ? `line-height: ${role.lineHeight}` : '', tracked ? `letter-spacing: ${role.letterSpacing}` : '',
+    role.transform ? `text-transform: ${role.transform}` : '', role.style ? `font-style: ${role.style}` : '',
+    role.stretch ? `font-stretch: ${role.stretch}` : '', role.numeric ? `font-variant-numeric: ${role.numeric}` : '',
+    role.featureSettings ? `font-feature-settings: ${role.featureSettings}` : '',
+    role.variationSettings ? `font-variation-settings: ${role.variationSettings}` : '',
+    role.opticalSizing ? `font-optical-sizing: ${role.opticalSizing}` : '', role.wordSpacing ? `word-spacing: ${role.wordSpacing}` : '',
+  ].filter(Boolean).join('; ');
+  return `<div class="spec copyable" ${cv(copyCss)}><div class="spec-head"><span class="mono dim">${label}</span><span class="mono">${esc(role.family)} · ${esc(meta)}</span></div><div class="spec-line" style="${css}">Ag ${esc(role.family)}</div></div>`;
 }
 
 function scales(brand: BrandModel): string {
   const space = brand.spacing.length
-    ? `<div class="sub">spacing</div><div class="bars">${brand.spacing.filter((s) => s > 0).map((s) => `<div class="bar"><span class="bar-fill" style="width:${Math.min(s, 128)}px"></span><span class="mono">${s}</span></div>`).join('')}</div>`
+    ? `<div class="sub">spacing</div><div class="bars">${brand.spacing.filter((s) => s > 0).map((s) => `<div class="bar copyable" ${cv(`${s}px`)}><span class="bar-fill" style="width:${Math.min(s, 128)}px"></span><span class="mono">${s}</span></div>`).join('')}</div>`
     : '';
   const radii = brand.radii.length
-    ? `<div class="sub">radius</div><div class="chips">${brand.radii.filter((r) => r >= 0).map((r) => `<div class="rad"><span class="rad-box" style="border-radius:${Math.min(r, 24)}px"></span><span class="mono">${r}</span></div>`).join('')}</div>`
+    ? `<div class="sub">radius</div><div class="chips">${brand.radii.filter((r) => r >= 0).map((r) => `<div class="rad copyable" ${cv(`${r}px`)}><span class="rad-box" style="border-radius:${Math.min(r, 24)}px"></span><span class="mono">${r}</span></div>`).join('')}</div>`
     : '';
-  const containers = brand.containers.length ? `<div class="sub">containers</div><div class="chips">${brand.containers.map((c) => `<span class="pchip mono">${c}px</span>`).join('')}</div>` : '';
+  const containers = brand.containers.length ? `<div class="sub">containers</div><div class="chips">${brand.containers.map((c) => `<span class="pchip mono copyable" ${cv(`${c}px`)}>${c}px</span>`).join('')}</div>` : '';
   return panel('Space & Shape', space + radii + containers);
 }
 
@@ -357,19 +373,22 @@ function elevation(brand: BrandModel): string {
 
 function gradients(brand: BrandModel): string {
   if (!brand.gradients.length) return '';
-  const g = brand.gradients.map((grad) => `<div class="grad" style="background:${esc(grad)}"></div>`).join('');
+  const g = brand.gradients.map((grad) => `<div class="grad copyable" ${cv(grad)} style="background:${esc(grad)}"></div>`).join('');
   return panel('Gradients', `<div class="grads">${g}</div>`);
 }
 
 function motionSection(motion: MotionModel): string {
-  const durs = Object.entries(motion.primitives.duration).map(([n, t]) => `<span class="pchip mono">${n} ${t.value}ms</span>`).join('');
+  const durs = Object.entries(motion.primitives.duration).map(([n, t]) => `<span class="pchip mono copyable" ${cv(`${t.value}ms`)}>${n} ${t.value}ms</span>`).join('');
   const eases = Object.entries(motion.primitives.easing)
     .map(([name, tok]) => {
-      if (tok.kind === 'bezier') return `<div class="ease"><div class="mono dim">${name}</div>${easeCurve(tok.control)}<div class="mono small">cubic-bezier(${tok.control.join(', ')})</div></div>`;
-      return `<div class="ease"><div class="mono dim">${name}</div><div class="spring">spring</div><div class="mono small">k ${tok.stiffness} · c ${tok.damping}</div></div>`;
+      if (tok.kind === 'bezier') {
+        const bz = `cubic-bezier(${tok.control.join(', ')})`;
+        return `<div class="ease copyable" ${cv(bz)}><div class="mono dim">${name}</div>${easeCurve(tok.control)}<div class="mono small">${bz}</div></div>`;
+      }
+      return `<div class="ease copyable" ${cv(`spring(stiffness ${tok.stiffness}, damping ${tok.damping})`)}><div class="mono dim">${name}</div><div class="spring">spring</div><div class="mono small">k ${tok.stiffness} · c ${tok.damping}</div></div>`;
     })
     .join('');
-  const stag = Object.keys(motion.primitives.stagger).length ? `<div class="sub">stagger</div><div class="chips">${Object.entries(motion.primitives.stagger).map(([n, t]) => `<span class="pchip mono">${n} ${t.value}ms</span>`).join('')}</div>` : '';
+  const stag = Object.keys(motion.primitives.stagger).length ? `<div class="sub">stagger</div><div class="chips">${Object.entries(motion.primitives.stagger).map(([n, t]) => `<span class="pchip mono copyable" ${cv(`${t.value}ms`)}>${n} ${t.value}ms</span>`).join('')}</div>` : '';
   return panel('Motion', `<div class="sub">duration</div><div class="chips">${durs}</div>${stag}<div class="sub">easing</div><div class="eases">${eases}</div>`);
 }
 
@@ -496,6 +515,12 @@ function exportScript(): string {
     b.parentNode.querySelectorAll('[data-set-mode]').forEach(function(x){x.removeAttribute('aria-current');});
     b.setAttribute('aria-current','true');
   });});}
+  var toast=document.createElement('div');toast.className='copied-toast';document.body.appendChild(toast);
+  document.querySelectorAll('[data-copy-value]').forEach(function(el){el.addEventListener('click',function(){
+    copy(el.getAttribute('data-copy-value'));
+    var r=el.getBoundingClientRect();toast.textContent='copied';toast.style.left=(r.left+r.width/2)+'px';toast.style.top=(r.top-6)+'px';toast.classList.add('show');
+    clearTimeout(toast._t);toast._t=setTimeout(function(){toast.classList.remove('show');},1000);
+  });});
 })();</script>`;
 }
 
@@ -689,6 +714,10 @@ h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute
 .xport-menu button:hover{background:var(--faint)}
 .xport-lp{display:inline-flex;align-items:center;gap:9px}
 .h-com{color:var(--h-com);font-style:italic}.h-str{color:var(--h-str)}.h-key{color:var(--h-key)}.h-num{color:var(--h-num)}.h-color{color:var(--h-color)}.h-kw{color:var(--h-kw)}.h-id{color:var(--ink)}.h-pun{color:var(--muted)}
+.copyable{cursor:copy}
+.copyable:hover{outline:1.5px solid var(--accent);outline-offset:2px;border-radius:5px}
+.copied-toast{position:fixed;z-index:60;transform:translate(-50%,-100%);background:var(--ink);color:var(--bg);font-family:var(--sans);font-size:11px;font-weight:500;padding:4px 9px;border-radius:5px;pointer-events:none;opacity:0;transition:opacity .12s ease;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.28)}
+.copied-toast.show{opacity:1}
 @media(max-width:640px){.head{flex-direction:column}h1{font-size:26px}}
 </style>`;
 }
