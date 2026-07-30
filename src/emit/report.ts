@@ -478,7 +478,7 @@ function colorFormatBar(): string {
         `<button type="button" class="cfmt-btn" data-set-cfmt="${o.fmt}"${o.fmt === DEFAULT_NOTATION ? ' aria-current="true"' : ''}>${o.label}</button>`,
     )
     .join('');
-  return `<div class="cfmt-bar"><span class="cfmt-cap mono">color format</span><div class="cfmt" role="group" aria-label="Color notation">${btns}</div></div>`;
+  return `<div class="cfmt-bar"><span class="cfmt-cap mono">color format</span><div class="cfmt" role="group" aria-label="Color notation"><span class="cfmt-thumb" aria-hidden="true"></span>${btns}</div></div>`;
 }
 
 function exportBar(): string {
@@ -546,7 +546,8 @@ function highlight(code: string): string {
 function exportScript(): string {
   return `<script>(function(){
   function codeFor(f){var e=document.getElementById('code-'+f);return e?e.textContent:'';}
-  function flash(b){if(!b)return;var t=b.getAttribute('data-label')||b.textContent;b.textContent='Copied';b.classList.add('ok');setTimeout(function(){b.textContent=t;b.classList.remove('ok');},1400);}
+  function swapLabel(b,text,ok){b.classList.add('blurring');setTimeout(function(){b.textContent=text;b.classList[ok?'add':'remove']('ok');b.classList.remove('blurring');},140);}
+  function flash(b){if(!b)return;var t=b.getAttribute('data-label')||b.textContent;swapLabel(b,'Copied',true);setTimeout(function(){swapLabel(b,t,false);},1400);}
   function copy(text,b){function ok(){flash(b);}
     if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(ok,fb);}else{fb();}
     function fb(){var a=document.createElement('textarea');a.value=text;a.setAttribute('readonly','');a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(a);ok();}}
@@ -582,8 +583,19 @@ function exportScript(): string {
       el.setAttribute('data-copy-value',v);
     });
     document.querySelectorAll('[data-set-cfmt]').forEach(function(b){b.setAttribute('aria-current',b.getAttribute('data-set-cfmt')===fmt?'true':'false');});
+    var ab=document.querySelector('[data-set-cfmt="'+fmt+'"]');if(ab)moveThumb(ab);
+  }
+  function moveThumb(btn){
+    var cf=btn.closest('.cfmt');if(!cf)return;var thumb=cf.querySelector('.cfmt-thumb');if(!thumb)return;
+    var tr=thumb.getBoundingClientRect(),br=btn.getBoundingClientRect();
+    thumb.style.clipPath='inset(0 '+Math.max(0,tr.right-br.right)+'px 0 '+Math.max(0,br.left-tr.left)+'px round 6px)';
   }
   document.querySelectorAll('[data-set-cfmt]').forEach(function(b){b.addEventListener('click',function(){setCfmt(b.getAttribute('data-set-cfmt'));});});
+  var cfActive=document.querySelector('.cfmt [data-set-cfmt][aria-current="true"]');
+  if(cfActive){moveThumb(cfActive);var cfBox=cfActive.closest('.cfmt');
+    var cfReady=function(){if(cfBox)cfBox.classList.add('cfmt-ready');};
+    requestAnimationFrame(cfReady);setTimeout(cfReady,80); // rAF for the common case; timeout survives hidden/throttled tabs
+    window.addEventListener('resize',function(){var a=document.querySelector('.cfmt [data-set-cfmt][aria-current="true"]');if(a)moveThumb(a);});}
 })();</script>`;
 }
 
@@ -770,6 +782,9 @@ h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute
 .exp-name{display:inline-flex;align-items:center;gap:8px}
 .exp-actions{display:flex;gap:8px;align-items:center;flex:none}
 .cp{font-size:12px;font-family:var(--sans);color:var(--muted);background:none;border:1px solid var(--line);border-radius:6px;padding:5px 12px;cursor:pointer}
+/* Copy feedback crossfades through a blur as the label swaps to "Copied". */
+.cp,.xport-copy{transition:color .2s ease,filter .16s ease,opacity .16s ease}
+.cp.blurring,.xport-copy.blurring{opacity:0;filter:blur(4px)}
 .cp:hover{border-color:var(--accent);color:var(--accent)}
 .cp.ok{color:var(--ok);border-color:var(--ok)}
 .flogo{height:15px;width:auto;flex:none;display:block}
@@ -777,13 +792,19 @@ h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute
 .toolbar .xport{margin:0}
 .cfmt-bar{display:inline-flex;align-items:center;gap:9px}
 .cfmt-cap{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
-.cfmt{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
-.cfmt-btn{background:none;border:none;color:var(--muted);font-family:var(--mono);font-size:11px;letter-spacing:.03em;cursor:pointer;padding:6px 10px;border-radius:6px}
-.cfmt-btn[aria-current="true"]{background:var(--accent);color:var(--panel)}
+.cfmt{position:relative;display:inline-flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
+/* A single accent pill spanning the track, clip-path'd to the active segment; the
+   clip animates so it wipes/slides between notations. Text color for the incoming
+   segment is delayed so it stays legible until the pill arrives under it. */
+.cfmt-thumb{position:absolute;top:3px;left:3px;right:3px;bottom:3px;background:var(--accent);border-radius:6px;clip-path:inset(0 100% 0 0 round 6px);pointer-events:none;z-index:0}
+.cfmt-ready .cfmt-thumb{transition:clip-path .34s cubic-bezier(.4,0,.2,1)}
+.cfmt-btn{position:relative;z-index:1;background:none;border:none;color:var(--muted);font-family:var(--mono);font-size:11px;letter-spacing:.03em;cursor:pointer;padding:6px 10px;border-radius:6px;transition:color .2s ease}
+.cfmt-btn[aria-current="true"]{color:var(--panel);transition:color .2s ease .14s}
 .cfmt-btn:hover:not([aria-current="true"]){color:var(--ink)}
+@media(prefers-reduced-motion:reduce){.cfmt-ready .cfmt-thumb{transition:none}}
 .xport{position:relative;display:inline-flex;align-items:stretch;margin:20px 6px 0;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
 .xport-copy,.xport-toggle{background:none;border:none;color:var(--ink);font-family:var(--sans);font-size:13px;cursor:pointer;padding:9px 14px;display:inline-flex;align-items:center;gap:8px}
-.xport-copy{font-weight:600;border-right:1px solid var(--line);border-radius:9px 0 0 9px}
+.xport-copy{font-weight:600;border-right:1px solid var(--line);border-radius:9px 0 0 9px;justify-content:center;min-width:118px}
 .xport-copy:hover,.xport-toggle:hover{background:var(--faint)}
 .xport-copy.ok{color:var(--ok)}
 .xport-toggle{border-radius:0 9px 9px 0}
@@ -797,8 +818,9 @@ h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute
 .h-com{color:var(--h-com);font-style:italic}.h-str{color:var(--h-str)}.h-key{color:var(--h-key)}.h-num{color:var(--h-num)}.h-color{color:var(--h-color)}.h-kw{color:var(--h-kw)}.h-id{color:var(--ink)}.h-pun{color:var(--muted)}
 .copyable{cursor:copy}
 .copyable:hover{outline:1.5px solid var(--accent);outline-offset:2px;border-radius:5px}
-.copied-toast{position:fixed;z-index:60;transform:translate(-50%,-100%);background:var(--ink);color:var(--bg);font-family:var(--sans);font-size:11px;font-weight:500;padding:4px 9px;border-radius:5px;pointer-events:none;opacity:0;transition:opacity .12s ease;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.28)}
-.copied-toast.show{opacity:1}
+.copied-toast{position:fixed;z-index:60;transform:translate(-50%,-100%);background:var(--ink);color:var(--bg);font-family:var(--sans);font-size:11px;font-weight:500;padding:4px 9px;border-radius:5px;pointer-events:none;opacity:0;filter:blur(6px);transition:opacity .18s ease,filter .18s ease;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.28)}
+.copied-toast.show{opacity:1;filter:blur(0)}
+@media(prefers-reduced-motion:reduce){.copied-toast,.cp,.xport-copy{transition:opacity .1s ease}}
 @media(max-width:640px){.head{flex-direction:column}h1{font-size:26px}}
 </style>`;
 }

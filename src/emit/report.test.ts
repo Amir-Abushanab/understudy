@@ -107,6 +107,21 @@ test('report: colors default to OKLCH, with a header switch to hex/rgb/hsl', () 
   assert.match(html, /class="grad-stops"><div class="pchip copyable color-cell"/, 'gradient stops render as re-notating chips');
 });
 
+test('report: switcher slides via clip-path and copy feedback crossfades through blur', () => {
+  const html = toBrandReport(design());
+  // The notation switcher: a single accent thumb, moved by clip-path.
+  assert.match(html, /<span class="cfmt-thumb" aria-hidden="true">/, 'switcher has a sliding thumb');
+  assert.match(html, /function moveThumb/, 'thumb is repositioned on switch');
+  assert.match(html, /thumb\.style\.clipPath='inset\(/, 'the thumb slides via clip-path');
+  assert.match(html, /\.cfmt-ready \.cfmt-thumb\{transition:clip-path/, 'clip-path is transitioned');
+  // Copy feedback: label swap and toast both crossfade through a blur.
+  assert.match(html, /function swapLabel/, 'copy label swaps behind a blur');
+  assert.match(html, /\.blurring\{opacity:0;filter:blur\(/, 'copy button blur crossfade CSS');
+  assert.match(html, /\.copied-toast\{[^}]*filter:blur/, 'copied toast crossfades through blur');
+  // Both honor reduced-motion.
+  assert.match(html, /prefers-reduced-motion:reduce/, 'animations respect reduced-motion');
+});
+
 test('report: type specimens apply styling (single-quoted family) and easings are playable', () => {
   const d = design();
   d.brand.typography.display = { ...d.brand.typography.display, family: 'Mona Sans' };
