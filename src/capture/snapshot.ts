@@ -166,9 +166,12 @@ export function captureLogo(page: Page): Promise<LogoAsset | null> {
     if (!el) return null;
 
     const svg = el.querySelector('svg');
-    if (svg) {
-      const markup = svg.outerHTML.slice(0, 4000);
-      const alt = el.getAttribute('aria-label');
+    const alt = el.getAttribute('aria-label');
+    // Keep the whole logo or none: truncating an SVG yields broken, invalid
+    // markup that renders as a fragment. Skip an absurdly large SVG (an
+    // illustration, not a mark) rather than emit a partial one.
+    if (svg && svg.outerHTML.length <= 40000) {
+      const markup = svg.outerHTML;
       return alt ? { kind: 'svg' as const, svg: markup, alt } : { kind: 'svg' as const, svg: markup };
     }
     const img = el.querySelector('img');
