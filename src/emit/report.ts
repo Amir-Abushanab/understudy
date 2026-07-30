@@ -30,10 +30,12 @@ export function toBrandReport(design: DesignModel, opts: { assets?: ReadonlyMap<
     `<main class="report">`,
     brandHero(design, assets),
     metaBar(design),
+    exportBar(),
     rationaleSection(design),
     palette(brand), accessibility(brand), typography(brand), scales(brand), elevation(brand), gradients(brand), motionSection(motion),
     exportsSection(design),
     footer(design),
+    exportScript(),
     `</main>`,
   ].join('\n');
 }
@@ -372,22 +374,111 @@ function easeCurve(c: readonly number[]): string {
 /** Design-token exports embedded in the page: Tailwind, CSS variables, and W3C
  * DTCG JSON, each downloadable via a data: URI (no JS) with the code viewable
  * inline. Same output as `understudy capture --tailwind / --css / --dtcg`. */
-function exportsSection(design: DesignModel): string {
-  const files = [
-    { name: 'tailwind.config.js', label: 'Tailwind', note: 'theme.extend', mime: 'text/javascript', code: toTailwindConfig(design) },
-    { name: 'brand.css', label: 'CSS variables', note: ':root custom properties', mime: 'text/css', code: toBrandCss(design) },
-    { name: 'design-tokens.json', label: 'Design Tokens', note: 'W3C DTCG', mime: 'application/json', code: JSON.stringify(toDesignTokens(design), null, 2) },
+interface ExportFile { fmt: string; name: string; label: string; note: string; mime: string; code: string }
+
+function exportFiles(design: DesignModel): ExportFile[] {
+  return [
+    { fmt: 'tailwind', name: 'tailwind.config.js', label: 'Tailwind', note: 'theme.extend', mime: 'text/javascript', code: toTailwindConfig(design) },
+    { fmt: 'css', name: 'brand.css', label: 'CSS variables', note: ':root custom properties', mime: 'text/css', code: toBrandCss(design) },
+    { fmt: 'dtcg', name: 'design-tokens.json', label: 'Design Tokens', note: 'W3C DTCG', mime: 'application/json', code: JSON.stringify(toDesignTokens(design), null, 2) },
   ];
-  const block = (f: (typeof files)[number]): string => {
+}
+
+function exportsSection(design: DesignModel): string {
+  const block = (f: ExportFile): string => {
     const href = `data:${f.mime};charset=utf-8,${encodeURIComponent(f.code)}`;
     return `<div class="exp">
-      <div class="exp-head"><span class="exp-name">${f.label} <span class="dim">${f.note}</span></span><a class="dl mono" download="${esc(f.name)}" href="${href}">download ${esc(f.name)}</a></div>
-      <details><summary class="mono dim small">view code</summary><pre class="code mono">${esc(f.code)}</pre></details>
+      <div class="exp-head"><span class="exp-name">${formatLogo(f.fmt)}${f.label} <span class="dim">${f.note}</span></span>` +
+      `<span class="exp-actions"><button class="cp" type="button" data-copy="${f.fmt}" data-label="Copy">Copy</button>` +
+      `<a class="dl mono" download="${esc(f.name)}" href="${href}">download</a></span></div>
+      <details><summary class="mono dim small">view code</summary><pre id="code-${f.fmt}" class="code mono">${highlight(f.code)}</pre></details>
     </div>`;
   };
   return `<section class="panel"><h2 class="mono">Export</h2>
     <p class="dim small exp-intro">Design tokens generated from the measured model, ready to drop into a project. Same output as <span class="mono">understudy capture --tailwind / --css / --dtcg</span>.</p>
-    <div class="exports">${files.map(block).join('')}</div></section>`;
+    <div class="exports">${exportFiles(design).map(block).join('')}</div></section>`;
+}
+
+/** A split-button at the top: copy the selected format, or pick another from the
+ * dropdown (each shown with its logo). Reads the code from the Export panel's
+ * <pre> blocks by id, so there is one source for the token text. */
+function exportBar(): string {
+  const items = [
+    { fmt: 'tailwind', label: 'Tailwind' },
+    { fmt: 'css', label: 'CSS variables' },
+    { fmt: 'dtcg', label: 'W3C tokens' },
+  ];
+  const cur = items[0];
+  return `<div class="xport" id="xport" data-fmt="${cur.fmt}">
+    <button class="xport-copy" type="button" data-label="Copy tokens">Copy tokens</button>
+    <button class="xport-toggle" type="button" aria-haspopup="menu" aria-label="Choose export format">
+      <span class="xport-cur">${formatLogo(cur.fmt)}<span>${cur.label}</span></span>
+      <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <div class="xport-menu" role="menu" hidden>
+      ${items.map((i) => `<button type="button" role="menuitem" data-fmt="${i.fmt}"><span class="xport-lp">${formatLogo(i.fmt)}<span>${i.label}</span></span></button>`).join('')}
+    </div>
+  </div>`;
+}
+
+/** Recognizable inline-SVG marks for each export format (self-contained). */
+function formatLogo(fmt: string): string {
+  switch (fmt) {
+    case 'tailwind':
+      return `<svg class="flogo" viewBox="0 0 54 33" aria-hidden="true"><path fill="#38bdf8" d="M27 0c-7.2 0-11.7 3.6-13.5 10.8 2.7-3.6 5.85-4.95 9.45-4.05 2.05.51 3.52 2 5.15 3.65C30.74 13.09 33.81 16.2 40.5 16.2c7.2 0 11.7-3.6 13.5-10.8-2.7 3.6-5.85 4.95-9.45 4.05-2.05-.51-3.52-2-5.15-3.65C36.76 3.11 33.69 0 27 0zM13.5 16.2C6.3 16.2 1.8 19.8 0 27c2.7-3.6 5.85-4.95 9.45-4.05 2.05.51 3.52 2 5.15 3.65C17.24 29.29 20.31 32.4 27 32.4c7.2 0 11.7-3.6 13.5-10.8-2.7 3.6-5.85 4.95-9.45 4.05-2.05-.51-3.52-2-5.15-3.65C23.26 19.31 20.19 16.2 13.5 16.2z"/></svg>`;
+    case 'css':
+      return `<svg class="flogo" viewBox="0 0 32 32" aria-hidden="true"><path fill="#264de4" d="M6 3l2.15 24.1L16 29.5l7.86-2.4L26 3H6z"/><path fill="#2965f1" d="M16 5.2v22.6l6.35-1.94L24.1 5.2H16z"/><text x="16" y="20.5" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="12" font-weight="700" fill="#fff">3</text></svg>`;
+    case 'dtcg':
+    case 'w3c':
+      return `<svg class="flogo" viewBox="0 0 46 22" aria-hidden="true"><text x="23" y="16.5" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="15" font-weight="800" letter-spacing="0.4" fill="currentColor">W3C</text></svg>`;
+    default:
+      return '';
+  }
+}
+
+/** Single-pass tokenizer for the export code blocks (JSON, JS config, CSS). One
+ * pass means a keyword inside a string is never mis-highlighted; escapes as it
+ * goes so the output is safe HTML. */
+function highlight(code: string): string {
+  const re = /(\/\*[\s\S]*?\*\/|\/\/[^\n]*)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|(#[0-9a-fA-F]{3,8}\b)|(\b(?:true|false|null|export|default|module|exports)\b|:root)|(-?\d*\.?\d+(?:px|rem|em|%|vh|vw|deg|ms|s)?\b)|(--[A-Za-z0-9-]+|[A-Za-z_$][\w-]*)|([{}[\]()=;,:])/g;
+  const key = (): boolean => /^\s*:/.test(code.slice(re.lastIndex));
+  let out = '';
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(code)) !== null) {
+    out += esc(code.slice(last, m.index));
+    let cls = 'h-pun';
+    if (m[1]) cls = 'h-com';
+    else if (m[2]) cls = key() ? 'h-key' : 'h-str';
+    else if (m[3]) cls = 'h-color';
+    else if (m[4]) cls = 'h-kw';
+    else if (m[5]) cls = 'h-num';
+    else if (m[6]) cls = key() ? 'h-key' : 'h-id';
+    out += `<span class="${cls}">${esc(m[0])}</span>`;
+    last = re.lastIndex;
+  }
+  out += esc(code.slice(last));
+  return out;
+}
+
+/** The only script the report ships: clipboard copy (with a textarea fallback)
+ * and the export dropdown. It reads token text from the Export panel's <pre>
+ * blocks, so nothing is duplicated. */
+function exportScript(): string {
+  return `<script>(function(){
+  function codeFor(f){var e=document.getElementById('code-'+f);return e?e.textContent:'';}
+  function flash(b){if(!b)return;var t=b.getAttribute('data-label')||b.textContent;b.textContent='Copied';b.classList.add('ok');setTimeout(function(){b.textContent=t;b.classList.remove('ok');},1400);}
+  function copy(text,b){function ok(){flash(b);}
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(ok,fb);}else{fb();}
+    function fb(){var a=document.createElement('textarea');a.value=text;a.setAttribute('readonly','');a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(a);ok();}}
+  document.querySelectorAll('[data-copy]').forEach(function(b){b.addEventListener('click',function(){copy(codeFor(b.getAttribute('data-copy')),b);});});
+  var root=document.getElementById('xport');
+  if(root){var menu=root.querySelector('.xport-menu'),toggle=root.querySelector('.xport-toggle'),cp=root.querySelector('.xport-copy'),cur=root.querySelector('.xport-cur');
+    toggle.addEventListener('click',function(e){e.stopPropagation();menu.hidden=!menu.hidden;});
+    document.addEventListener('click',function(){menu.hidden=true;});
+    menu.querySelectorAll('[data-fmt]').forEach(function(it){it.addEventListener('click',function(e){e.stopPropagation();root.setAttribute('data-fmt',it.getAttribute('data-fmt'));cur.innerHTML=it.querySelector('.xport-lp').innerHTML;menu.hidden=true;});});
+    cp.addEventListener('click',function(){copy(codeFor(root.getAttribute('data-fmt')),cp);});}
+})();</script>`;
 }
 
 function footer(design: DesignModel): string {
@@ -450,8 +541,8 @@ function esc(s: string): string {
 }
 
 function style(): string {
-  const light = '--bg:#f7f7f8;--panel:#ffffff;--ink:#17181c;--muted:#6b6d76;--line:#e7e7ec;--faint:#f0f0f3;--accent:#0d9488;--ok:#15803d;--warn:#b45309;--bad:#b91c1c;';
-  const dark = '--bg:#0c0d10;--panel:#141519;--ink:#e9e9ee;--muted:#8a8c95;--line:#24262c;--faint:#1a1c21;--accent:#2dd4bf;--ok:#4ade80;--warn:#fbbf24;--bad:#f87171;';
+  const light = '--bg:#f7f7f8;--panel:#ffffff;--ink:#17181c;--muted:#6b6d76;--line:#e7e7ec;--faint:#f0f0f3;--accent:#0d9488;--ok:#15803d;--warn:#b45309;--bad:#b91c1c;--h-com:#8a8c95;--h-str:#0a7d43;--h-key:#0b6e75;--h-num:#b4530a;--h-color:#8a3fb0;--h-kw:#2059c4;';
+  const dark = '--bg:#0c0d10;--panel:#141519;--ink:#e9e9ee;--muted:#8a8c95;--line:#24262c;--faint:#1a1c21;--accent:#2dd4bf;--ok:#4ade80;--warn:#fbbf24;--bad:#f87171;--h-com:#8a8c95;--h-str:#8fce9b;--h-key:#7fd0d0;--h-num:#e6a06a;--h-color:#cba0e0;--h-kw:#8fb4f0;';
   return `<style>
 :root{${light}--mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace;--sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color-scheme:light dark;}
 @media(prefers-color-scheme:dark){:root{${dark}}}
@@ -553,6 +644,26 @@ h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute
 .exp details{margin-top:10px}
 .exp summary{cursor:pointer;width:max-content}
 .code{margin:10px 0 0;padding:12px;background:var(--faint);border-radius:6px;font-size:11.5px;line-height:1.5;overflow:auto;max-height:340px;white-space:pre}
+.exp-name{display:inline-flex;align-items:center;gap:8px}
+.exp-actions{display:flex;gap:8px;align-items:center;flex:none}
+.cp{font-size:12px;font-family:var(--sans);color:var(--muted);background:none;border:1px solid var(--line);border-radius:6px;padding:5px 12px;cursor:pointer}
+.cp:hover{border-color:var(--accent);color:var(--accent)}
+.cp.ok{color:var(--ok);border-color:var(--ok)}
+.flogo{height:15px;width:auto;flex:none;display:block}
+.xport{position:relative;display:inline-flex;align-items:stretch;margin:20px 6px 0;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
+.xport-copy,.xport-toggle{background:none;border:none;color:var(--ink);font-family:var(--sans);font-size:13px;cursor:pointer;padding:9px 14px;display:inline-flex;align-items:center;gap:8px}
+.xport-copy{font-weight:600;border-right:1px solid var(--line);border-radius:9px 0 0 9px}
+.xport-copy:hover,.xport-toggle:hover{background:var(--faint)}
+.xport-copy.ok{color:var(--ok)}
+.xport-toggle{border-radius:0 9px 9px 0}
+.xport-cur{display:inline-flex;align-items:center;gap:7px}
+.chev{width:12px;height:12px;opacity:.55;flex:none}
+.xport-menu{position:absolute;top:calc(100% + 6px);left:0;z-index:40;min-width:200px;background:var(--panel);border:1px solid var(--line);border-radius:9px;box-shadow:0 10px 30px rgba(0,0,0,.22);padding:5px}
+.xport-menu[hidden]{display:none}
+.xport-menu button{display:flex;align-items:center;width:100%;background:none;border:none;color:var(--ink);font-family:var(--sans);font-size:13px;text-align:left;padding:8px 10px;border-radius:6px;cursor:pointer}
+.xport-menu button:hover{background:var(--faint)}
+.xport-lp{display:inline-flex;align-items:center;gap:9px}
+.h-com{color:var(--h-com);font-style:italic}.h-str{color:var(--h-str)}.h-key{color:var(--h-key)}.h-num{color:var(--h-num)}.h-color{color:var(--h-color)}.h-kw{color:var(--h-kw)}.h-id{color:var(--ink)}.h-pun{color:var(--muted)}
 @media(max-width:640px){.head{flex-direction:column}h1{font-size:26px}}
 </style>`;
 }

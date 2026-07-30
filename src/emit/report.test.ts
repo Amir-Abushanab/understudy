@@ -102,19 +102,30 @@ test('report: inlines fonts and a raster logo from the assets map', () => {
   assert.match(toBrandReport(d), /cdn\.example\.com\/foo\.woff2/, 'falls back to the URL without an assets map');
 });
 
-test('report: has an export panel with Tailwind, CSS, and DTCG downloads and no JS', () => {
+test('report: export panel — downloads, copy buttons, format picker, and highlighting', () => {
   const html = toBrandReport(design());
   assert.match(html, /<h2 class="mono">Export<\/h2>/, 'export panel present');
   assert.match(html, /download="tailwind\.config\.js"/, 'Tailwind download');
   assert.match(html, /download="brand\.css"/, 'CSS variables download');
   assert.match(html, /download="design-tokens\.json"/, 'DTCG download');
   assert.match(html, /href="data:text\/javascript;charset=utf-8,/, 'Tailwind is an inline data: download');
-  assert.doesNotMatch(html, /<script/i, 'the report ships no JavaScript (data: links + <details>)');
+  // copy affordances
+  assert.match(html, /data-copy="tailwind"/, 'per-format copy button');
+  assert.match(html, /id="xport"[^>]*data-fmt="tailwind"/, 'top split-button');
+  assert.match(html, /class="xport-menu"/, 'format dropdown');
+  assert.match(html, /navigator\.clipboard/, 'clipboard copy script present');
+  // syntax highlighting applied to the code blocks
+  assert.match(html, /id="code-tailwind"/, 'code block has a stable id');
+  assert.match(html, /class="h-key"/, 'keys highlighted');
+  assert.match(html, /class="h-num"/, 'numbers highlighted');
 });
 
 test('report: strips scripts and on* handlers from an injected logo SVG', () => {
   const evil: LogoAsset = { kind: 'svg', svg: '<svg onload="alert(1)"><script>alert(2)</script><rect fill="#f00"/></svg>' };
   const html = toBrandReport(design(evil));
-  assert.ok(!/<script/i.test(html), 'no <script> in output');
-  assert.ok(!/onload=/i.test(html), 'no inline handlers in output');
+  // The report ships its own controlled copy/dropdown script, so assert the
+  // INJECTED logo script and handler specifically are stripped.
+  assert.ok(!/alert\(/.test(html), 'injected script body is stripped');
+  assert.ok(!/onload=/i.test(html), 'injected inline handler is stripped');
+  assert.ok(!/<script[^>]*>\s*alert/i.test(html), 'no logo-injected script survives');
 });
