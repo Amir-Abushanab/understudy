@@ -476,7 +476,7 @@ function exportsSection(design: DesignModel): string {
     return `<div class="exp">
       <div class="exp-head"><span class="exp-name">${formatLogo(f.fmt)}${f.label} <span class="dim">${f.note}</span></span>` +
       `<span class="exp-actions"><button class="cp" type="button" data-copy="${f.fmt}" data-label="Copy">Copy</button>` +
-      `<a class="dl mono" download="${esc(f.name)}" href="${href}">download</a></span></div>
+      `<a class="dl mono" download="${esc(f.name)}" href="${href}" data-dl="${f.fmt}" data-mime="${esc(f.mime)}">download</a></span></div>
       <details><summary class="mono dim small">view code</summary><pre id="code-${f.fmt}" class="code mono">${highlight(f.code)}</pre></details>
     </div>`;
   };
@@ -544,21 +544,34 @@ function formatLogo(fmt: string): string {
  * pass means a keyword inside a string is never mis-highlighted; escapes as it
  * goes so the output is safe HTML. */
 function highlight(code: string): string {
-  const re = /(\/\*[\s\S]*?\*\/|\/\/[^\n]*)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|(#[0-9a-fA-F]{3,8}\b)|(\b(?:true|false|null|export|default|module|exports)\b|:root)|(-?\d*\.?\d+(?:px|rem|em|%|vh|vw|deg|ms|s)?\b)|(--[A-Za-z0-9-]+|[A-Za-z_$][\w-]*)|([{}[\]()=;,:])/g;
+  const re = /(\/\*[\s\S]*?\*\/|\/\/[^\n]*)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|(#[0-9a-fA-F]{3,8}\b|rgba?\([^)]*\)|hsla?\([^)]*\))|(\b(?:true|false|null|export|default|module|exports)\b|:root)|(-?\d*\.?\d+(?:px|rem|em|%|vh|vw|deg|ms|s)?\b)|(--[A-Za-z0-9-]+|[A-Za-z_$][\w-]*)|([{}[\]()=;,:])/g;
   const key = (): boolean => /^\s*:/.test(code.slice(re.lastIndex));
+  // Every color token carries all four notations, defaulting to OKLCH, so the
+  // header switch re-notates the exported tokens (and their copy + download) in
+  // step with the swatches.
+  const colorSpan = (hex: string): string => {
+    const cf = colorFormats(hex);
+    return `<span class="h-color" data-oklch="${esc(cf.oklch)}" data-hex="${esc(cf.hex)}" data-rgb="${esc(cf.rgb)}" data-hsl="${esc(cf.hsl)}">${esc(cf[DEFAULT_NOTATION])}</span>`;
+  };
   let out = '';
   let last = 0;
   let m: RegExpExecArray | null;
   while ((m = re.exec(code)) !== null) {
     out += esc(code.slice(last, m.index));
-    let cls = 'h-pun';
-    if (m[1]) cls = 'h-com';
-    else if (m[2]) cls = key() ? 'h-key' : 'h-str';
-    else if (m[3]) cls = 'h-color';
-    else if (m[4]) cls = 'h-kw';
-    else if (m[5]) cls = 'h-num';
-    else if (m[6]) cls = key() ? 'h-key' : 'h-id';
-    out += `<span class="${cls}">${esc(m[0])}</span>`;
+    if (m[3]) {
+      out += colorSpan(m[0]); // bare hex (CSS variables)
+    } else if (m[2] && /^(?:#[0-9a-fA-F]{3,8}|rgba?\([^)]*\)|hsla?\([^)]*\))$/i.test(m[0].slice(1, -1))) {
+      const q = esc(m[0][0]); // quoted hex (Tailwind / DTCG): keep quotes, re-notate the color inside
+      out += `<span class="h-str">${q}</span>${colorSpan(m[0].slice(1, -1))}<span class="h-str">${q}</span>`;
+    } else {
+      let cls = 'h-pun';
+      if (m[1]) cls = 'h-com';
+      else if (m[2]) cls = key() ? 'h-key' : 'h-str';
+      else if (m[4]) cls = 'h-kw';
+      else if (m[5]) cls = 'h-num';
+      else if (m[6]) cls = key() ? 'h-key' : 'h-id';
+      out += `<span class="${cls}">${esc(m[0])}</span>`;
+    }
     last = re.lastIndex;
   }
   out += esc(code.slice(last));
@@ -602,12 +615,15 @@ function exportScript(): string {
     var dist=Math.max(0,track.clientWidth-dot.offsetWidth-2);
     dot.animate([{transform:'translateX(0)'},{transform:'translateX('+dist+'px)'}],{duration:900,easing:el.getAttribute('data-ease'),fill:'forwards'});
   });});
+  function updateDownloads(){document.querySelectorAll('[data-dl]').forEach(function(a){var pre=document.getElementById('code-'+a.getAttribute('data-dl'));if(pre)a.href='data:'+a.getAttribute('data-mime')+';charset=utf-8,'+encodeURIComponent(pre.textContent);});}
   function setCfmt(fmt){
     document.querySelectorAll('.color-cell').forEach(function(el){
       var v=el.getAttribute('data-'+fmt);if(!v)return;
       var t=el.querySelector('.color-val');if(t)t.textContent=v;
       el.setAttribute('data-copy-value',v);
     });
+    document.querySelectorAll('.h-color[data-oklch]').forEach(function(s){var v=s.getAttribute('data-'+fmt);if(v)s.textContent=v;}); // re-notate the exported token colors
+    updateDownloads(); // and the download files derived from them
     document.querySelectorAll('[data-set-cfmt]').forEach(function(b){b.setAttribute('aria-current',b.getAttribute('data-set-cfmt')===fmt?'true':'false');});
     var ab=document.querySelector('[data-set-cfmt="'+fmt+'"]');if(ab)moveThumb(ab);
   }
@@ -617,6 +633,7 @@ function exportScript(): string {
     thumb.style.clipPath='inset(0 '+Math.max(0,tr.right-br.right)+'px 0 '+Math.max(0,br.left-tr.left)+'px round 6px)';
   }
   document.querySelectorAll('[data-set-cfmt]').forEach(function(b){b.addEventListener('click',function(){setCfmt(b.getAttribute('data-set-cfmt'));});});
+  updateDownloads(); // sync baked (hex) download hrefs to the OKLCH the code blocks render by default
   var cfActive=document.querySelector('.cfmt [data-set-cfmt][aria-current="true"]');
   if(cfActive){moveThumb(cfActive);var cfBox=cfActive.closest('.cfmt');
     var cfReady=function(){if(cfBox)cfBox.classList.add('cfmt-ready');};

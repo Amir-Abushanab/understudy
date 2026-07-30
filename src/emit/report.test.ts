@@ -107,6 +107,15 @@ test('report: colors default to OKLCH, with a header switch to hex/rgb/hsl', () 
   assert.match(html, /class="grad-stops"><div class="pchip copyable color-cell"/, 'gradient stops render as re-notating chips');
 });
 
+test('report: exported tokens follow the notation switch', () => {
+  const html = toBrandReport(design());
+  assert.match(html, /<span class="h-color" data-oklch="oklch\([^"]*" data-hex="#[0-9a-f]+"[^>]*>oklch\(/, 'token colors carry every notation and default to OKLCH like the swatches');
+  assert.match(html, /<span class="h-str">(?:&quot;|&#39;|['"])<\/span><span class="h-color"/, 'a quoted color (Tailwind/DTCG) keeps its quote and re-notates the value inside');
+  assert.match(html, /data-dl="tailwind" data-mime="text\/javascript"/, 'a download carries its format + mime so it can be regenerated');
+  assert.match(html, /function updateDownloads/, 'downloads regenerate from the live code text');
+  assert.match(html, /\.h-color\[data-oklch\]/, 'the switch re-notates the exported token colors');
+});
+
 test('report: switcher slides via clip-path and copy feedback crossfades through blur', () => {
   const html = toBrandReport(design());
   // The notation switcher: a single accent thumb, moved by clip-path.
