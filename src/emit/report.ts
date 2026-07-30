@@ -328,8 +328,24 @@ function levelBadges(passes: string[]): string {
 function typography(brand: BrandModel): string {
   const t = brand.typography;
   const specs = [specimen('display', t.display), specimen('body', t.body), t.mono ? specimen('mono', t.mono) : '', t.label ? specimen('label', t.label) : ''].join('');
-  const headings = t.headings && Object.keys(t.headings).length > 0
-    ? `<div class="sub">heading scale</div><div class="hscale">${Object.entries(t.headings).map(([lvl, h]) => `<div class="hrow copyable" ${cv(`${h.size}px`)}><span class="mono dim hlvl">${lvl}</span><span class="hsize" style="font-family:${cssFam(t.display.family)};font-size:${Math.min(h.size, 42)}px;font-weight:${h.weight}">${lvl.toUpperCase()}</span><span class="mono dim">${h.size}px · w${h.weight}</span></div>`).join('')}</div>`
+  const headingEntries = t.headings ? Object.entries(t.headings) : [];
+  const headings = headingEntries.length > 0
+    ? (() => {
+        // Render each heading at its measured size, scaled *together* so the
+        // largest fits the panel and the true ratios stay visible. The old flat
+        // Math.min(size, 42) clamp collapsed every heading >=42px to ~one size,
+        // so a 64px and a 40px heading looked identical.
+        const HCAP = 72;
+        const maxSize = Math.max(...headingEntries.map(([, h]) => h.size));
+        const factor = maxSize > HCAP ? HCAP / maxSize : 1;
+        const rows = headingEntries
+          .map(
+            ([lvl, h]) =>
+              `<div class="hrow copyable" ${cv(`${h.size}px`)}><span class="mono dim hlvl">${lvl}</span><span class="hsize" style="font-family:${cssFam(t.display.family)};font-size:${Math.round(h.size * factor)}px;font-weight:${h.weight}">${lvl.toUpperCase()}</span><span class="mono dim">${h.size}px · w${h.weight}</span></div>`,
+          )
+          .join('');
+        return `<div class="sub">heading scale${factor < 1 ? ' · scaled to fit' : ''}</div><div class="hscale">${rows}</div>`;
+      })()
     : '';
   const ladder = t.weights.length > 1
     ? `<div class="sub">weight ladder</div><div class="wladder">${t.weights.map((w) => `<div class="wrow copyable" ${cv(String(w))}><span class="mono dim">${w}</span><span class="wsample" style="font-family:${cssFam(t.body.family)};font-weight:${w}">Grumpy wizards make toxic brew</span></div>`).join('')}</div>`
@@ -348,7 +364,7 @@ function specimen(label: string, role: TypographyRole): string {
   ].filter(Boolean).join(' · ');
   const css = [
     `font-family:${cssFam(role.family)}`,
-    `font-size:${Math.min(role.size, 52)}px`,
+    `font-size:${Math.min(role.size, 64)}px`,
     `font-weight:${role.weight}`,
     tracked ? `letter-spacing:${role.letterSpacing}` : '',
     role.transform ? `text-transform:${role.transform}` : '',

@@ -133,6 +133,25 @@ test('report: type specimens apply styling (single-quoted family) and easings ar
   assert.match(html, /dot\.animate/, 'play handler animates the dot with the easing');
 });
 
+test('report: the heading scale keeps the real size hierarchy (no flat clamp)', () => {
+  const d = design();
+  d.brand.typography.headings = { h1: { size: 64, weight: 700 }, h2: { size: 40, weight: 600 }, h3: { size: 22, weight: 600 } };
+  const html = toBrandReport(d);
+  // 64px and 40px must render at clearly different sizes -- they used to both
+  // land at ~42px under the old Math.min(size, 42) clamp.
+  assert.match(html, /class="hsize"[^>]*font-size:64px[^>]*>H1</, 'the largest heading renders at its true size');
+  assert.match(html, /class="hsize"[^>]*font-size:40px[^>]*>H2</, 'a distinct mid heading stays distinct');
+  assert.doesNotMatch(html, /class="hsize"[^>]*font-size:42px/, 'nothing collapses to the old 42px clamp');
+  assert.match(html, />64px · w700</, 'labels still show the true measured px');
+
+  // Oversized headings scale together to fit, preserving the ratio.
+  d.brand.typography.headings = { h1: { size: 144, weight: 700 }, h2: { size: 72, weight: 600 } };
+  const big = toBrandReport(d);
+  assert.match(big, /class="hsize"[^>]*font-size:72px[^>]*>H1</, '144px caps at 72');
+  assert.match(big, /class="hsize"[^>]*font-size:36px[^>]*>H2</, '72px scales to 36, keeping the 2:1 ratio');
+  assert.match(big, /heading scale · scaled to fit/, 'discloses that the sample sizes were scaled');
+});
+
 test('report: a dual-mode brand gets a light/dark switch, one mode at a time', () => {
   const d = design();
   d.brand.colors = {
