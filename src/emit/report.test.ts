@@ -78,6 +78,12 @@ test('report: meta bar has icons, percentage confidences, tooltips where they he
   assert.ok(tips < icons, 'a self-evident dual-mode cell stays plain (no tooltip)');
 });
 
+test('report: inlines an SVG logo so currentColor stays visible', () => {
+  const html = toBrandReport(design({ kind: 'svg', svg: '<svg viewBox="0 0 10 10"><path fill="currentColor" d="M0 0h10v10H0z"/></svg>' }));
+  assert.match(html, /<span class="logo"><svg/, 'SVG logo is inlined, not wrapped in an <img>');
+  assert.doesNotMatch(html, /data:image\/svg\+xml/, 'no data-URI <img> that would collapse currentColor to black');
+});
+
 test('report: strips scripts and on* handlers from an injected logo SVG', () => {
   const evil: LogoAsset = { kind: 'svg', svg: '<svg onload="alert(1)"><script>alert(2)</script><rect fill="#f00"/></svg>' };
   const html = toBrandReport(design(evil));

@@ -139,7 +139,7 @@ function metaBar(design: DesignModel): string {
 
   const source = `<a class="src" href="${esc(design.source)}">${esc(from)}</a>`;
   return `<div class="metabar">${items.map(cell).join('')}</div>
-    <p class="provenance">Every value in this report is measured live from ${source} on ${esc(when)}. The Feel below is synthesized from the cited sources, never inferred from the numbers.</p>`;
+    <p class="provenance">Measured live from ${source} on ${esc(when)}. The Feel is synthesized from the cited sources.</p>`;
 }
 
 /** Small monoline instrument icons, inline so the report stays self-contained. */
@@ -230,7 +230,7 @@ function rationaleSection(design: DesignModel): string {
     ${principles ? `<div class="sub">principles</div><ul class="rlist">${principles}</ul>` : ''}
     ${constraints ? `<div class="sub">constraints (what it refuses to do)</div><ul class="rlist neg">${constraints}</ul>` : ''}
     ${divergences}
-    ${srcList ? `<div class="sub">sources · where the feel comes from</div><ul class="rlist srcs">${srcList}</ul>` : ''}
+    ${srcList ? `<div class="sub">sources</div><ul class="rlist srcs">${srcList}</ul>` : ''}
   </section>`;
 }
 
@@ -373,11 +373,30 @@ function panel(title: string, body: string): string {
 function logoMarkup(brand: BrandModel): string {
   const logo = brand.logo!;
   if (logo.kind === 'svg' && logo.svg) {
-    const clean = logo.svg.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/\son\w+="[^"]*"/gi, '');
-    return `<span class="logo"><img alt="logo" src="data:image/svg+xml;utf8,${encodeURIComponent(clean)}"/></span>`;
+    // Inline the sanitized SVG rather than wrapping it in an <img>: an <img>
+    // renders the SVG in isolation, where fill="currentColor" collapses to black
+    // and vanishes on a dark hero. Inlined, currentColor follows the hero's
+    // foreground (--b-fg) and stays visible in either theme.
+    return `<span class="logo">${sanitizeSvg(logo.svg)}</span>`;
   }
   if (logo.kind === 'img' && logo.src) return `<span class="logo"><img alt="logo" src="${esc(logo.src)}"/></span>`;
   return '';
+}
+
+/** Strip anything active or external from a captured SVG so it is safe to inline:
+ * scripts, style and foreignObject blocks, event handlers, and non-internal refs. */
+function sanitizeSvg(svg: string): string {
+  return svg
+    .replace(/<\?xml[\s\S]*?\?>/gi, '')
+    .replace(/<!DOCTYPE[\s\S]*?>/gi, '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<foreignObject[\s\S]*?<\/foreignObject>/gi, '')
+    .replace(/\son\w+\s*=\s*"[^"]*"/gi, '')
+    .replace(/\son\w+\s*=\s*'[^']*'/gi, '')
+    .replace(/\s(?:xlink:href|href)\s*=\s*"(?!#)[^"]*"/gi, '')
+    .replace(/\s(?:xlink:href|href)\s*=\s*'(?!#)[^']*'/gi, '')
+    .replace(/javascript:/gi, '');
 }
 
 function cssFam(family: string): string {
@@ -414,7 +433,8 @@ function style(): string {
 h1{font-size:34px;margin:2px 0 4px;letter-spacing:-.02em;text-wrap:balance}
 h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 16px;font-weight:600}
 .src{color:var(--muted);text-decoration:none;font-size:13px}.src:hover{color:var(--accent)}
-.logo img{height:30px;width:auto;max-width:150px;display:block}
+.logo{display:inline-flex;color:var(--b-fg)}
+.logo img,.logo svg{height:30px;width:auto;max-width:150px;display:block}
 .brand-hero{position:relative;margin-top:4px;padding:44px 40px;border-radius:14px;background:var(--b-bg);color:var(--b-fg);border:1px solid var(--b-border);overflow:hidden}
 .bh-top{display:flex;align-items:center;gap:14px;margin-bottom:20px}
 .bh-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--b-accent)}
