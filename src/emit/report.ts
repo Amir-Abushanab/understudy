@@ -383,9 +383,9 @@ function motionSection(motion: MotionModel): string {
     .map(([name, tok]) => {
       if (tok.kind === 'bezier') {
         const bz = `cubic-bezier(${tok.control.join(', ')})`;
-        return `<div class="ease copyable" ${cv(bz)}><div class="mono dim">${name}</div>${easeCurve(tok.control)}<div class="mono small">${bz}</div></div>`;
+        return `<div class="ease playable" data-ease="${bz}" title="Play the easing"><div class="mono dim">${name}</div>${easeCurve(tok.control)}<div class="ease-play"><span class="ease-dot"></span></div><div class="mono small copyable" ${cv(bz)}>${bz}</div></div>`;
       }
-      return `<div class="ease copyable" ${cv(`spring(stiffness ${tok.stiffness}, damping ${tok.damping})`)}><div class="mono dim">${name}</div><div class="spring">spring</div><div class="mono small">k ${tok.stiffness} · c ${tok.damping}</div></div>`;
+      return `<div class="ease"><div class="mono dim">${name}</div><div class="spring">spring</div><div class="mono small copyable" ${cv(`spring(stiffness ${tok.stiffness}, damping ${tok.damping})`)}>k ${tok.stiffness} · c ${tok.damping}</div></div>`;
     })
     .join('');
   const stag = Object.keys(motion.primitives.stagger).length ? `<div class="sub">stagger</div><div class="chips">${Object.entries(motion.primitives.stagger).map(([n, t]) => `<span class="pchip mono copyable" ${cv(`${t.value}ms`)}>${n} ${t.value}ms</span>`).join('')}</div>` : '';
@@ -516,10 +516,16 @@ function exportScript(): string {
     b.setAttribute('aria-current','true');
   });});}
   var toast=document.createElement('div');toast.className='copied-toast';document.body.appendChild(toast);
-  document.querySelectorAll('[data-copy-value]').forEach(function(el){el.addEventListener('click',function(){
+  document.querySelectorAll('[data-copy-value]').forEach(function(el){el.addEventListener('click',function(e){e.stopPropagation();
     copy(el.getAttribute('data-copy-value'));
     var r=el.getBoundingClientRect();toast.textContent='copied';toast.style.left=(r.left+r.width/2)+'px';toast.style.top=(r.top-6)+'px';toast.classList.add('show');
     clearTimeout(toast._t);toast._t=setTimeout(function(){toast.classList.remove('show');},1000);
+  });});
+  document.querySelectorAll('[data-ease]').forEach(function(el){el.addEventListener('click',function(){
+    var track=el.querySelector('.ease-play'),dot=el.querySelector('.ease-dot');
+    if(!track||!dot||!dot.animate)return;
+    var dist=Math.max(0,track.clientWidth-dot.offsetWidth-2);
+    dot.animate([{transform:'translateX(0)'},{transform:'translateX('+dist+'px)'}],{duration:900,easing:el.getAttribute('data-ease'),fill:'forwards'});
   });});
 })();</script>`;
 }
@@ -566,7 +572,10 @@ function sanitizeSvg(svg: string): string {
 }
 
 function cssFam(family: string): string {
-  return /\s/.test(family) ? `"${esc(family)}", sans-serif` : `${esc(family)}, sans-serif`;
+  // Single quotes: valid in both a `<style>` block and an inline style="" attribute.
+  // Double quotes broke the inline `style="font-family:"Family"..."` specimens, so
+  // multi-word fonts silently rendered unstyled.
+  return /\s/.test(family) ? `'${esc(family)}', sans-serif` : `${esc(family)}, sans-serif`;
 }
 function otherMode(m: Mode): Mode {
   return m === 'light' ? 'dark' : 'light';
@@ -675,6 +684,9 @@ h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute
 .curve .diag{stroke:var(--line);stroke-width:1.5}
 .curve .cv{fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linecap:round}
 .spring{width:84px;height:84px;background:var(--faint);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-family:var(--mono);font-size:11px}
+.ease.playable{cursor:pointer}
+.ease-play{position:relative;height:12px;width:84px;background:var(--faint);border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.ease-dot{position:absolute;top:1px;left:1px;width:9px;height:9px;border-radius:50%;background:var(--accent);will-change:transform}
 .feel-summary{font-size:19px;line-height:1.55;max-width:62ch;margin:0}
 .feel-voice{font-size:13px;color:var(--muted);margin:12px 0 0}
 .rlist{margin:6px 0 0;padding-left:20px;font-size:14px;line-height:1.6}

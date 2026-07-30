@@ -86,6 +86,17 @@ test('report: individual colors, gradients, and settings are click-to-copy', () 
   assert.match(html, /querySelectorAll\('\[data-copy-value\]'\)/, 'click-to-copy handler is wired');
 });
 
+test('report: type specimens apply styling (single-quoted family) and easings are playable', () => {
+  const d = design();
+  d.brand.typography.display = { ...d.brand.typography.display, family: 'Mona Sans' };
+  const html = toBrandReport(d);
+  assert.match(html, /style="font-family:'Mona Sans'/, 'multi-word family is single-quoted so the inline style actually applies');
+  assert.doesNotMatch(html, /style="font-family:"Mona Sans"/, 'no attribute-breaking double quotes');
+  assert.match(html, /class="ease playable" data-ease="cubic-bezier/, 'a bezier easing is playable');
+  assert.match(html, /class="ease-play"><span class="ease-dot">/, 'play track + dot rendered');
+  assert.match(html, /dot\.animate/, 'play handler animates the dot with the easing');
+});
+
 test('report: a dual-mode brand gets a light/dark switch, one mode at a time', () => {
   const d = design();
   d.brand.colors = {
