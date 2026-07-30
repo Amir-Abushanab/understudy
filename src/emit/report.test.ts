@@ -81,7 +81,7 @@ test('report: meta bar has icons, percentage confidences, tooltips where they he
 test('report: individual colors, gradients, and settings are click-to-copy', () => {
   const html = toBrandReport(design());
   assert.match(html, /class="sw copyable color-cell"[^>]*data-copy-value="oklch\(/, 'a color swatch copies its color (OKLCH by default)');
-  assert.match(html, /class="grad copyable" data-copy-value="linear-gradient/, 'a gradient copies its value');
+  assert.match(html, /class="grad copyable color-cell"[^>]*data-copy-value="linear-gradient\(135deg, oklch\(/, 'a gradient copies its value with stops re-notated to OKLCH');
   assert.match(html, /data-copy-value="16px"/, 'a type-scale value copies');
   assert.match(html, /querySelectorAll\('\[data-copy-value\]'\)/, 'click-to-copy handler is wired');
 });
@@ -101,6 +101,10 @@ test('report: colors default to OKLCH, with a header switch to hex/rgb/hsl', () 
   assert.match(html, /data-set-cfmt="rgb"/, 'rgb is a switch option');
   assert.match(html, /data-set-cfmt="hsl"/, 'hsl is a switch option');
   assert.match(html, /function setCfmt/, 're-notation handler is wired');
+  // Gradients re-notate too: the band carries a stops-in-OKLCH variant, and each
+  // stop is its own re-notating chip.
+  assert.match(html, /class="grad copyable color-cell"[^>]*data-oklch="linear-gradient\(135deg, oklch\(/, 'gradient band has an OKLCH-stop variant');
+  assert.match(html, /class="grad-stops"><div class="pchip copyable color-cell"/, 'gradient stops render as re-notating chips');
 });
 
 test('report: type specimens apply styling (single-quoted family) and easings are playable', () => {

@@ -13,7 +13,7 @@ import type { DesignModel } from './design-model.js';
 import type { BrandModel, ColorTokens, Mode, ContrastCheck, TypographyRole } from '../brand/types.js';
 import type { MotionModel } from '../analyze/model.js';
 import { parseColor, luminance } from '../brand/color.js';
-import { colorFormats, type ColorNotation } from './color-format.js';
+import { colorFormats, gradientFormats, gradientStops, type ColorFormats, type ColorNotation } from './color-format.js';
 import { toBrandCss, toTailwindConfig, toDesignTokens } from './tokens.js';
 
 const EMPTY_ASSETS: ReadonlyMap<string, string> = new Map();
@@ -290,12 +290,14 @@ const DEFAULT_NOTATION: ColorNotation = 'oklch';
  * A color cell carries the same color in every notation as data-* attributes and
  * displays the default one. The header switch rewrites the visible text and the
  * copy value from these, so every color re-notates in place with no re-render.
+ * Colors, gradients, and gradient stops all flow through this.
  */
-function colorCell(value: string): { attrs: string; shown: string } {
-  const f = colorFormats(value);
+function fmtCell(f: ColorFormats): { attrs: string; shown: string } {
   const attrs = `data-oklch="${esc(f.oklch)}" data-hex="${esc(f.hex)}" data-rgb="${esc(f.rgb)}" data-hsl="${esc(f.hsl)}"`;
   return { attrs, shown: f[DEFAULT_NOTATION] };
 }
+
+const colorCell = (value: string): { attrs: string; shown: string } => fmtCell(colorFormats(value));
 
 function swatch(name: string, value: string): string {
   const { attrs, shown } = colorCell(value);
@@ -390,7 +392,18 @@ function elevation(brand: BrandModel): string {
 
 function gradients(brand: BrandModel): string {
   if (!brand.gradients.length) return '';
-  const g = brand.gradients.map((grad) => `<div class="grad copyable" ${cv(grad)} style="background:${esc(grad)}"></div>`).join('');
+  const g = brand.gradients
+    .map((grad) => {
+      // The band copies the whole gradient re-notated; each stop is a chip that
+      // copies just that color, both following the header's notation switch.
+      const { attrs, shown } = fmtCell(gradientFormats(grad));
+      const stops = gradientStops(grad)
+        .slice(0, 8)
+        .map((s) => chip(s))
+        .join('');
+      return `<div class="grad-cell"><div class="grad copyable color-cell" ${attrs} data-copy-value="${esc(shown)}" title="Copy gradient" style="background:${esc(grad)}"></div>${stops ? `<div class="grad-stops">${stops}</div>` : ''}</div>`;
+    })
+    .join('');
   return panel('Gradients', `<div class="grads">${g}</div>`);
 }
 
@@ -722,7 +735,10 @@ h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute
 .rad-box{width:34px;height:34px;background:var(--faint);border:1.5px solid var(--accent)}
 .shadows{display:flex;flex-wrap:wrap;gap:20px}
 .shadow-box{width:78px;height:60px;background:var(--panel);border:1px solid var(--line);border-radius:8px;display:flex;align-items:flex-end;justify-content:flex-end;padding:5px;font-size:10px}
-.grads{display:flex;flex-wrap:wrap;gap:12px}.grad{width:150px;height:64px;border-radius:8px;border:1px solid var(--line)}
+.grads{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
+.grad-cell{display:flex;flex-direction:column;gap:8px}
+.grad{width:100%;height:60px;border-radius:8px;border:1px solid var(--line)}
+.grad-stops{display:flex;flex-wrap:wrap;gap:6px}
 .eases{display:flex;flex-wrap:wrap;gap:18px}
 .ease{display:flex;flex-direction:column;gap:6px;font-size:11px}
 .curve{background:var(--faint);border-radius:6px}

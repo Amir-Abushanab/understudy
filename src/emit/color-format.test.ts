@@ -6,7 +6,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { colorFormats } from './color-format.js';
+import { colorFormats, gradientFormats, gradientStops } from './color-format.js';
 
 test('color-format: white and black are achromatic in OKLCH', () => {
   assert.equal(colorFormats('#ffffff').oklch, 'oklch(100% 0 0)');
@@ -31,6 +31,26 @@ test('color-format: alpha is carried through every notation', () => {
   assert.equal(f.rgb, 'rgba(88, 166, 255, 0.36)');
   assert.match(f.hsl, /^hsla\(.+, 0\.36\)$/);
   assert.match(f.oklch, / \/ 0\.36\)$/);
+});
+
+test('color-format: gradient stops re-notate while structure is preserved', () => {
+  const grad = 'linear-gradient(135deg, #5b5bff 0%, rgba(34, 197, 94, 0.5) 100%)';
+  const f = gradientFormats(grad);
+  // Angle and stop positions survive; only the colors change notation.
+  assert.equal(f.rgb, 'linear-gradient(135deg, rgb(91, 91, 255) 0%, rgba(34, 197, 94, 0.5) 100%)');
+  assert.equal(f.hex, 'linear-gradient(135deg, #5b5bff 0%, #22c55e80 100%)');
+  assert.ok(f.oklch.startsWith('linear-gradient(135deg, oklch('), `oklch stops: ${f.oklch}`);
+  assert.ok(f.oklch.includes(' 0%,') && f.oklch.endsWith(' 100%)'), 'positions preserved');
+  assert.ok(f.oklch.includes('/ 0.5'), 'the second stop keeps its alpha');
+});
+
+test('color-format: gradient stops are extracted in order', () => {
+  assert.deepEqual(
+    gradientStops('linear-gradient(135deg, #5b5bff 0%, rgba(34, 197, 94, 0.5) 100%)'),
+    ['#5b5bff', 'rgba(34, 197, 94, 0.5)'],
+  );
+  // A value with no parseable stops yields nothing (and formats pass through).
+  assert.deepEqual(gradientStops('none'), []);
 });
 
 test('color-format: an unparseable value is returned verbatim in every slot', () => {

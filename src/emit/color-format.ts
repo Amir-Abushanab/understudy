@@ -30,6 +30,29 @@ export function colorFormats(value: string): ColorFormats {
   };
 }
 
+/**
+ * Every color token in a CSS value: functional rgb/rgba/hsl/hsla, or a 3/4/6/8
+ * digit hex. Positions, angles, and the gradient keyword are left untouched.
+ * Longest hex alternative first so `#rrggbbaa` is not clipped to `#rrggbb`.
+ */
+const COLOR_TOKEN = /rgba?\([^)]*\)|hsla?\([^)]*\)|#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{4}|[0-9a-fA-F]{3})/g;
+
+/**
+ * A gradient (or any multi-color CSS value) rendered in each notation: only the
+ * color stops change; the angle, positions, and structure are preserved. Stops
+ * that do not parse are left verbatim, so a value never breaks.
+ */
+export function gradientFormats(value: string): ColorFormats {
+  const inNotation = (n: ColorNotation): string =>
+    value.replace(COLOR_TOKEN, (tok) => colorFormats(tok)[n]);
+  return { oklch: inNotation('oklch'), hex: inNotation('hex'), rgb: inNotation('rgb'), hsl: inNotation('hsl') };
+}
+
+/** The color stops of a gradient, in order (positions/angles dropped). */
+export function gradientStops(value: string): string[] {
+  return value.match(COLOR_TOKEN) ?? [];
+}
+
 const clampByte = (n: number): number => Math.max(0, Math.min(255, Math.round(n)));
 
 /** Trim an alpha to 2 decimals without trailing zeros: 0.36 -> "0.36", 0.5 -> "0.5". */
