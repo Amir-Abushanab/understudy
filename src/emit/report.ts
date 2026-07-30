@@ -361,7 +361,8 @@ function typography(brand: BrandModel): string {
 function familyLabel(family: string): string {
   const src = fontSource(family);
   if (!src) return esc(family);
-  return `<a class="fam-link" href="${esc(src.url)}" target="_blank" rel="noopener noreferrer" title="View ${esc(family)} on ${esc(src.repo)}">${esc(family)}<span class="fam-ext" aria-hidden="true">↗</span></a>`;
+  const title = src.kind === 'search' ? `Search ${esc(src.repo)} for ${esc(family)}` : `View ${esc(family)} on ${esc(src.repo)}`;
+  return `<a class="fam-link${src.kind === 'search' ? ' fam-search' : ''}" href="${esc(src.url)}" target="_blank" rel="noopener noreferrer" title="${title}">${esc(family)}<span class="fam-ext" aria-hidden="true">↗</span></a>`;
 }
 
 function specimen(label: string, role: TypographyRole): string {
@@ -477,7 +478,7 @@ function exportsSection(design: DesignModel): string {
       <div class="exp-head"><span class="exp-name">${formatLogo(f.fmt)}${f.label} <span class="dim">${f.note}</span></span>` +
       `<span class="exp-actions"><button class="cp" type="button" data-copy="${f.fmt}" data-label="Copy">Copy</button>` +
       `<a class="dl mono" download="${esc(f.name)}" href="${href}" data-dl="${f.fmt}" data-mime="${esc(f.mime)}">download</a></span></div>
-      <details><summary class="mono dim small">view code</summary><pre id="code-${f.fmt}" class="code mono">${highlight(f.code)}</pre></details>
+      <details><summary class="mono dim small">view code</summary><pre id="code-${f.fmt}" class="code mono">${highlight(f.code, f.fmt === 'dtcg')}</pre></details>
     </div>`;
   };
   return `<section class="panel"><h2 class="mono">Export</h2>
@@ -543,14 +544,17 @@ function formatLogo(fmt: string): string {
 /** Single-pass tokenizer for the export code blocks (JSON, JS config, CSS). One
  * pass means a keyword inside a string is never mis-highlighted; escapes as it
  * goes so the output is safe HTML. */
-function highlight(code: string): string {
+function highlight(code: string, pinHex = false): string {
   const re = /(\/\*[\s\S]*?\*\/|\/\/[^\n]*)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|(#[0-9a-fA-F]{3,8}\b|rgba?\([^)]*\)|hsla?\([^)]*\))|(\b(?:true|false|null|export|default|module|exports)\b|:root)|(-?\d*\.?\d+(?:px|rem|em|%|vh|vw|deg|ms|s)?\b)|(--[A-Za-z0-9-]+|[A-Za-z_$][\w-]*)|([{}[\]()=;,:])/g;
   const key = (): boolean => /^\s*:/.test(code.slice(re.lastIndex));
   // Every color token carries all four notations, defaulting to OKLCH, so the
   // header switch re-notates the exported tokens (and their copy + download) in
   // step with the swatches.
-  const colorSpan = (hex: string): string => {
-    const cf = colorFormats(hex);
+  const colorSpan = (raw: string): string => {
+    // pinHex keeps a block's colors exactly as generated so it opts out of the
+    // switch (DTCG: its $value must be a canonical color, not an oklch() string).
+    if (pinHex) return `<span class="h-color">${esc(raw)}</span>`;
+    const cf = colorFormats(raw);
     return `<span class="h-color" data-oklch="${esc(cf.oklch)}" data-hex="${esc(cf.hex)}" data-rgb="${esc(cf.rgb)}" data-hsl="${esc(cf.hsl)}">${esc(cf[DEFAULT_NOTATION])}</span>`;
   };
   let out = '';
@@ -613,7 +617,8 @@ function exportScript(): string {
     var track=el.querySelector('.ease-play'),dot=el.querySelector('.ease-dot');
     if(!track||!dot||!dot.animate)return;
     var dist=Math.max(0,track.clientWidth-dot.offsetWidth-2);
-    dot.animate([{transform:'translateX(0)'},{transform:'translateX('+dist+'px)'}],{duration:900,easing:el.getAttribute('data-ease'),fill:'forwards'});
+    var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+    dot.animate([{transform:'translateX(0)'},{transform:'translateX('+dist+'px)'}],{duration:reduce?0:900,easing:el.getAttribute('data-ease'),fill:'forwards'});
   });});
   function updateDownloads(){document.querySelectorAll('[data-dl]').forEach(function(a){var pre=document.getElementById('code-'+a.getAttribute('data-dl'));if(pre)a.href='data:'+a.getAttribute('data-mime')+';charset=utf-8,'+encodeURIComponent(pre.textContent);});}
   function setCfmt(fmt){
@@ -633,6 +638,13 @@ function exportScript(): string {
     thumb.style.clipPath='inset(0 '+Math.max(0,tr.right-br.right)+'px 0 '+Math.max(0,br.left-tr.left)+'px round 6px)';
   }
   document.querySelectorAll('[data-set-cfmt]').forEach(function(b){b.addEventListener('click',function(){setCfmt(b.getAttribute('data-set-cfmt'));});});
+  document.querySelectorAll('.cfmt').forEach(function(cf){cf.addEventListener('keydown',function(e){ // left/right arrows rove the notation switch
+    if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft')return;
+    var btns=[].slice.call(cf.querySelectorAll('[data-set-cfmt]')),i=btns.indexOf(document.activeElement);
+    if(i<0)return;e.preventDefault();
+    var n=e.key==='ArrowRight'?(i+1)%btns.length:(i-1+btns.length)%btns.length;
+    btns[n].focus();setCfmt(btns[n].getAttribute('data-set-cfmt'));
+  });});
   updateDownloads(); // sync baked (hex) download hrefs to the OKLCH the code blocks render by default
   var cfActive=document.querySelector('.cfmt [data-set-cfmt][aria-current="true"]');
   if(cfActive){moveThumb(cfActive);var cfBox=cfActive.closest('.cfmt');
@@ -775,6 +787,7 @@ h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute
 .spec-head{display:flex;justify-content:space-between;gap:12px;font-size:11px;margin-bottom:8px}
 .fam-link{color:inherit;text-decoration:none;border-bottom:1px dotted var(--muted);white-space:nowrap}
 .fam-link:hover{color:var(--accent);border-bottom-color:var(--accent)}
+.fam-link.fam-search{border-bottom-style:dashed} /* a search, not a confirmed page */
 .fam-ext{opacity:.55;margin-left:3px;font-size:.82em}
 .spec-line{line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .wladder{display:flex;flex-direction:column;gap:9px;margin-bottom:4px}

@@ -142,20 +142,34 @@ test('report: type specimens apply styling (single-quoted family) and easings ar
   assert.match(html, /dot\.animate/, 'play handler animates the dot with the easing');
 });
 
-test('report: a font on Google Fonts links to its specimen; unknown families stay plain', () => {
+test('report: fonts link to their source — Google Fonts specimen, else a Fontsource search', () => {
   const html = toBrandReport(design()); // fixture family is Inter, which is on Google Fonts
   assert.match(
     html,
     /<a class="fam-link" href="https:\/\/fonts\.google\.com\/specimen\/Inter"[^>]*target="_blank"[^>]*>Inter<span class="fam-ext"/,
-    'a Google Fonts family links to its specimen, opening in a new tab',
+    'a Google Fonts family links directly to its specimen, opening in a new tab',
   );
   assert.match(html, /\.fam-link\{/, 'font-link styling is present');
 
   const d = design();
   d.brand.typography.display = { ...d.brand.typography.display, family: 'Acme Private Sans' };
   d.brand.typography.body = { ...d.brand.typography.body, family: 'Acme Private Sans' };
-  const plain = toBrandReport(d);
-  assert.doesNotMatch(plain, /fam-link[^<]*Acme Private Sans/, 'a family not in any catalog is never linked');
+  const off = toBrandReport(d);
+  assert.match(
+    off,
+    /<a class="fam-link fam-search" href="https:\/\/fontsource\.org\/\?query=Acme%20Private%20Sans"[^>]*>Acme Private Sans/,
+    'an off-catalog family falls back to a clearly-marked Fontsource search',
+  );
+});
+
+test('report: DTCG stays canonical hex; easings + switcher honor reduced-motion and the keyboard', () => {
+  const html = toBrandReport(design());
+  // DTCG opts out of the switch — its $value must be a canonical color, not oklch().
+  assert.match(html, /<span class="h-color">#[0-9a-f]{6}/i, 'DTCG colors are plain hex with no notation data');
+  assert.match(html, /<span class="h-color" data-oklch=/, 'CSS/Tailwind colors still carry notations and follow the switch');
+  // a11y niceties.
+  assert.match(html, /matchMedia\('\(prefers-reduced-motion: reduce\)'\)/, 'playable easings honor reduced-motion');
+  assert.match(html, /e\.key==='ArrowRight'/, 'the notation switch supports arrow-key navigation');
 });
 
 test('report: the heading scale keeps the real size hierarchy (no flat clamp)', () => {

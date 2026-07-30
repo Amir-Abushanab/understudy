@@ -24,13 +24,17 @@ test('font-sources: a variable-font name falls back to the base family', () => {
   assert.equal(fontSource('Mona Sans VF')?.url, 'https://fonts.google.com/specimen/Mona+Sans');
   // A genuinely distinct family is matched exactly, not stripped to a base.
   assert.equal(fontSource('Inter Tight')?.url, 'https://fonts.google.com/specimen/Inter+Tight');
-  // Stripping to a non-catalog base still links nothing.
-  assert.equal(fontSource('Acme Custom VF'), null);
+  // Stripping to a non-catalog base falls through to the Fontsource search.
+  assert.equal(fontSource('Acme Custom VF')?.repo, 'Fontsource');
 });
 
-test('font-sources: an unknown family gets no link, never a guessed URL', () => {
-  assert.equal(fontSource('SF Pro Text'), null); // Apple system font
-  assert.equal(fontSource('Helvetica Neue'), null);
-  assert.equal(fontSource('Totally Made Up Face 9000'), null);
+test('font-sources: an off-catalog family falls back to a Fontsource search, honestly labeled', () => {
+  const r = fontSource('SF Pro Text'); // Apple system font, not on Google Fonts
+  assert.equal(r?.repo, 'Fontsource');
+  assert.equal(r?.kind, 'search');
+  assert.equal(r?.url, 'https://fontsource.org/?query=SF%20Pro%20Text');
+  // A Google Fonts hit stays a direct specimen (never downgraded to a search).
+  assert.equal(fontSource('Inter')?.kind, 'specimen');
+  // An empty family still yields nothing at all.
   assert.equal(fontSource(''), null);
 });

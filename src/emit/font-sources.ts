@@ -14,6 +14,8 @@ import { GOOGLE_FONTS } from './google-fonts-list.js';
 export interface FontSource {
   url: string;
   repo: string;
+  /** 'specimen' is a confirmed direct page; 'search' is a best-effort lookup. */
+  kind: 'specimen' | 'search';
 }
 
 const CANONICAL: ReadonlyMap<string, string> = new Map(GOOGLE_FONTS.map((n) => [n.toLowerCase(), n]));
@@ -30,8 +32,12 @@ export function fontSource(family: string): FontSource | null {
   for (const candidate of base && base !== name ? [name, base] : [name]) {
     const canonical = CANONICAL.get(candidate.toLowerCase());
     if (canonical) {
-      return { url: `https://fonts.google.com/specimen/${canonical.replace(/ /g, '+')}`, repo: 'Google Fonts' };
+      return { url: `https://fonts.google.com/specimen/${canonical.replace(/ /g, '+')}`, repo: 'Google Fonts', kind: 'specimen' };
     }
   }
-  return null;
+  // Not in the Google Fonts catalog: offer a Fontsource lookup as a best-effort
+  // fallback. It is clearly a search (Fontsource mirrors much of the same catalog,
+  // so a bespoke or commercial face often will not be there) rather than a direct
+  // link we cannot stand behind.
+  return { url: `https://fontsource.org/?query=${encodeURIComponent(name)}`, repo: 'Fontsource', kind: 'search' };
 }
