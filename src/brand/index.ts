@@ -37,14 +37,30 @@ export function assembleBrand(input: BrandInput): BrandModel {
   // Does the site actually theme? Compare the forced backgrounds' luminance.
   const lightLum = luminance(parseColor(lightColors.colors.background) ?? WHITE);
   const darkLum = luminance(parseColor(darkColors.colors.background) ?? BLACK);
-  const themed = Math.abs(lightLum - darkLum) > 0.25;
+  let themed = Math.abs(lightLum - darkLum) > 0.25;
 
+  // colors, plus the ColorResult that produced each mode (so provenance below can
+  // read the right source, which is not lightColors/darkColors in the toggle case).
   const colors: Partial<Record<Mode, ColorTokens>> = {};
+  const resultFor: Partial<Record<Mode, typeof lightColors>> = {};
   if (themed) {
-    colors.light = lightColors.colors;
-    colors.dark = darkColors.colors;
-  } else {
-    colors[mode] = primaryColors.colors;
+    colors.light = lightColors.colors; resultFor.light = lightColors;
+    colors.dark = darkColors.colors; resultFor.dark = darkColors;
+  } else if (input.toggled && input.toggled.length > 0) {
+    // The site ignored prefers-color-scheme, but a manual theme toggle was clicked.
+    // If it produced an opposite-luminance palette, that toggle IS the second mode.
+    const toggledColors = extractColors(input.toggled, input.extraGradients);
+    const primaryLum = mode === 'dark' ? darkLum : lightLum;
+    const toggledLum = luminance(parseColor(toggledColors.colors.background) ?? WHITE);
+    const toggledMode: Mode = toggledLum < 0.4 ? 'dark' : 'light';
+    if (toggledMode !== mode && Math.abs(primaryLum - toggledLum) > 0.25) {
+      colors[mode] = primaryColors.colors; resultFor[mode] = primaryColors;
+      colors[toggledMode] = toggledColors.colors; resultFor[toggledMode] = toggledColors;
+      themed = true;
+    }
+  }
+  if (!themed) {
+    colors[mode] = primaryColors.colors; resultFor[mode] = primaryColors;
   }
 
   const challenged = isChallenged(input.signals, input.light.length);
@@ -66,7 +82,7 @@ export function assembleBrand(input: BrandInput): BrandModel {
     const tokens = colors[key];
     if (!tokens) continue;
     accessibility[key] = auditContrast(tokens);
-    if ((key === 'dark' ? darkColors : lightColors).borderInferred) provenance[`colors.${key}.border`] = 'inferred';
+    if (resultFor[key]?.borderInferred) provenance[`colors.${key}.border`] = 'inferred';
   }
   if (Object.keys(states).length > 0) provenance.states = 'inferred';
 

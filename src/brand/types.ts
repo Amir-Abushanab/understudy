@@ -155,6 +155,9 @@ export interface BrandInput {
   dark: StyleSnapshot[];
   /** Light-scheme snapshot at a mobile viewport, for fluid/responsive type. */
   mobile: StyleSnapshot[];
+  /** Snapshot taken after clicking a manual theme toggle, when one was found.
+   * Recovers toggle-based dark modes that prefers-color-scheme emulation misses. */
+  toggled?: StyleSnapshot[];
   defaultBackground: string;
   fontFaces: FontFaceRule[];
   fontFiles: string[];

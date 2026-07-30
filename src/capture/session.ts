@@ -127,16 +127,72 @@ export async function captureSite(options: CaptureOptions): Promise<SiteCapture>
     await page.waitForTimeout(300);
     const mobile = await snapshotStyles(page);
 
+    // Manual theme toggle: many sites implement dark mode with a button + class,
+    // not prefers-color-scheme, so emulateMedia never flips them. Back at desktop,
+    // find and click a theme toggle (best-effort, never navigates); if it flips the
+    // theme, assembleBrand picks up the second mode.
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.emulateMedia({ colorScheme: 'light' });
+    await page.waitForTimeout(200);
+    const toggled = await tryThemeToggle(page);
+
     const motion = assembleCapture(raw, { source: options.url, capturedAt, passes, limitations });
     return {
       motion,
       styles: {
         light, dark, mobile, defaultBackground, fontFaces, fontFiles: fontFileUrls, hoverAccents, extraGradients, measure, signals,
+        ...(toggled ? { toggled } : {}),
         ...(logo ? { logo } : {}),
       },
     };
   } finally {
     await browser.close();
+  }
+}
+
+/** Find and click a manual theme/appearance toggle, then snapshot the result, so
+ * toggle-based dark modes — which prefers-color-scheme emulation cannot trigger —
+ * are still captured. Best-effort and safe: it never follows a navigating link,
+ * and returns null on no match or any error, so a wrong guess just yields a
+ * snapshot the assembler discards (no luminance change). */
+async function tryThemeToggle(page: Page): Promise<Awaited<ReturnType<typeof snapshotStyles>> | null> {
+  try {
+    // Effective page background: many sites leave <body> transparent and paint the
+    // background on <html>, so fall through when body is transparent (rgba .. ,0).
+    const bgOf = (): Promise<string> =>
+      page.evaluate(() => {
+        const transparent = (c: string): boolean => !c || c === 'transparent' || /rgba?\([^)]*,\s*0\s*\)$/.test(c);
+        const body = getComputedStyle(document.body).backgroundColor;
+        return transparent(body) ? getComputedStyle(document.documentElement).backgroundColor : body;
+      });
+    const initial = await bgOf();
+
+    // Drive the CSS dark-mode mechanism directly rather than hunting for a toggle
+    // button (often an icon inside a closed dropdown). A toggle just sets a class
+    // or data-* on <html>; apply the common signals ourselves and see if the
+    // stylesheet responds. Self-validating: it only counts if the background flips,
+    // so a site with no dark mode simply yields nothing. Try dark first, then light
+    // (so a dark-default site still reveals its light mode).
+    const apply = (theme: 'dark' | 'light'): Promise<void> =>
+      page.evaluate((t) => {
+        const other = t === 'dark' ? 'light' : 'dark';
+        for (const el of [document.documentElement, document.body]) {
+          if (!el) continue;
+          el.classList.remove(other, `${other}-mode`, `theme-${other}`);
+          el.classList.add(t, `${t}-mode`);
+          for (const a of ['data-theme', 'data-color-mode', 'data-mode', 'data-bs-theme', 'data-color-scheme', 'data-appearance']) el.setAttribute(a, t);
+          (el as HTMLElement).style.colorScheme = t;
+        }
+      }, theme);
+
+    for (const theme of ['dark', 'light'] as const) {
+      await apply(theme);
+      await page.waitForTimeout(400); // let the stylesheet + transitions settle
+      if ((await bgOf()) !== initial) return await snapshotStyles(page);
+    }
+    return null;
+  } catch {
+    return null;
   }
 }
 

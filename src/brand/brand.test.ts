@@ -33,6 +33,19 @@ test('brand: the accent stands off the background, never equals it', () => {
   assert.equal(colors.accent, '#5865f2', 'the accent is the distinct button color');
 });
 
+test('brand: recovers a toggle-based dark mode that prefers-color-scheme misses', () => {
+  // A light site that ignores prefers-color-scheme (light emulation == dark
+  // emulation), but a manual theme toggle produced a dark palette (input.toggled).
+  const darkToggled: StyleSnapshot[] = [];
+  for (let i = 0; i < 20; i++) darkToggled.push(snap({ background: 'rgb(13, 17, 23)', area: 10000 }));
+  for (let i = 0; i < 30; i++) darkToggled.push(snap({ color: 'rgb(240, 240, 240)', hasText: true, area: 500, fontSize: 16 }));
+  for (let i = 0; i < 6; i++) darkToggled.push(snap({ background: 'rgb(88, 166, 255)', interactive: true, area: 900, tag: 'button' }));
+  const brand = assembleBrand({ ...input(lightSite(), lightSite(), 'rgb(255, 255, 255)'), toggled: darkToggled });
+  assert.deepEqual(Object.keys(brand.colors).sort(), ['dark', 'light'], 'both modes recovered via the toggle');
+  assert.equal(brand.colors.light?.background, '#ffffff');
+  assert.equal(brand.colors.dark?.background, '#0d1117');
+});
+
 function snap(p: Partial<StyleSnapshot>): StyleSnapshot {
   return {
     tag: 'div', area: 100, width: 100, maxWidth: 0, color: 'rgb(20, 20, 20)', background: 'rgba(0, 0, 0, 0)',
