@@ -15,9 +15,17 @@ export function spacingScale(snapshots: StyleSnapshot[]): number[] {
 }
 
 export function radiusScale(snapshots: StyleSnapshot[]): number[] {
-  const raw = commonValues(snapshots.map((s) => s.radius), { mergeWithin: 1, minShare: 0.004, cap: 10 });
-  const snapped = snapAndDedupe(raw, 2, 6);
-  return [0, ...snapped].slice(0, 7);
+  // A radius this large is "fully rounded" (a pill or circle), commonly encoded
+  // as 9999px or an absurd sentinel (e.g. 33554400px). Normalize any such value
+  // to one conventional full-round token so the sentinel never pollutes the scale
+  // or the numeric radius vocabulary.
+  const PILL = 9999;
+  const FULL = 200;
+  const values = snapshots.map((s) => (s.radius >= FULL ? PILL : s.radius));
+  const raw = commonValues(values, { mergeWithin: 1, minShare: 0.004, cap: 10 });
+  const hasPill = raw.some((r) => r >= FULL);
+  const snapped = snapAndDedupe(raw.filter((r) => r < FULL), 2, 6);
+  return [0, ...snapped, ...(hasPill ? [PILL] : [])].slice(0, 7);
 }
 
 /** Pick a 4px or 8px base grid, whichever most of the observed values align to. */

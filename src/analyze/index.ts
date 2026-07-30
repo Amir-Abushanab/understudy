@@ -60,6 +60,10 @@ interface EventFit {
   easingVerified: boolean;
 }
 
+/** Durations above this are ambient (loops, long scroll intros), not interaction
+ * motion; matches the validator's duration bound so emitted models validate. */
+const MAX_INTERACTION_MS = 3000;
+
 export function analyze(capture: CaptureResult): MotionModel {
   const fits = capture.events.map(fitEvent);
   // Motion that merely tracks scroll position (Lenis smooth scroll, parallax) is
@@ -70,7 +74,15 @@ export function analyze(capture: CaptureResult): MotionModel {
   const timedFits = fits.filter((f) => !coupled.has(f.event.targetId));
 
   // --- primitives.duration -------------------------------------------------
-  const durations = timedFits.map((f) => f.durationMs).filter((d) => d > 0);
+  // A duration over the interaction ceiling (matching the validator's bound) is
+  // ambient motion (a looping hero, a long scroll intro), not an interaction
+  // primitive; left in the scale it mints spurious, orphaned, over-bound tokens
+  // like `epic: 6290` that nothing references and that fail validation. Keep the
+  // interaction-scale durations for the vocabulary; the ambient ones are noted
+  // in the observed audit below.
+  const allDurations = timedFits.map((f) => f.durationMs).filter((d) => d > 0);
+  const durations = allDurations.filter((d) => d <= MAX_INTERACTION_MS);
+  const ambientDurations = allDurations.filter((d) => d > MAX_INTERACTION_MS);
   const durationScale = quantizeScale(durations, DURATION_ANCHORS);
   const duration = toDurationTokens(durationScale.scale);
 
@@ -131,7 +143,11 @@ export function analyze(capture: CaptureResult): MotionModel {
   const verified = timedFits.filter((f) => f.durationVerified || f.easingVerified).length;
   const crossNote = verifiable > 0 ? `cross-verified ${verified} of ${verifiable} motions against declared CSS or WAAPI timing` : null;
   const revealNote = scrollReveal ? `scroll-reveal on ${scrollReveal.count} elements` : null;
-  const extraNote = [crossNote, revealNote].filter((n): n is string => n !== null).join('; ') || null;
+  const ambientNote =
+    ambientDurations.length > 0
+      ? `${ambientDurations.length} ambient motion(s) over ${MAX_INTERACTION_MS}ms kept out of the duration scale (max ${Math.round(Math.max(...ambientDurations))}ms)`
+      : null;
+  const extraNote = [crossNote, revealNote, ambientNote].filter((n): n is string => n !== null).join('; ') || null;
   const observed = {
     samples: capture.totalSamples,
     rejected: capture.rejected,

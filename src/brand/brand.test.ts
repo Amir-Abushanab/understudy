@@ -8,6 +8,17 @@ import assert from 'node:assert/strict';
 import type { StyleSnapshot } from './types.js';
 import { assembleBrand } from './index.js';
 import { extractColors, luminance, parseColor, mergePalette } from './color.js';
+import { radiusScale } from './scale.js';
+
+test('scale: a fully-rounded pill radius normalizes to 9999, not a sentinel', () => {
+  const s: StyleSnapshot[] = [];
+  for (let i = 0; i < 20; i++) s.push(snap({ radius: 8, area: 400 }));
+  for (let i = 0; i < 12; i++) s.push(snap({ radius: 33554400, area: 400 })); // "fully round" sentinel
+  const radii = radiusScale(s);
+  assert.ok(radii.includes(8), 'real corner radius kept');
+  assert.ok(radii.includes(9999), 'the pill normalizes to a 9999 full-round token');
+  assert.ok(!radii.some((r) => r > 9999), 'the absurd sentinel is gone from the scale');
+});
 
 function snap(p: Partial<StyleSnapshot>): StyleSnapshot {
   return {

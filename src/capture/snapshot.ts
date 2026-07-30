@@ -149,8 +149,12 @@ export function captureLogo(page: Page): Promise<LogoAsset | null> {
     const links = Array.from(document.querySelectorAll('a'));
     const candidates = links.filter((a) => {
       try {
-        const home = a.href === location.origin || a.href === location.origin + '/' || new URL(a.href).pathname === '/';
-        const named = /logo|brand|home/i.test(`${a.className} ${a.getAttribute('aria-label') || ''}`);
+        const path = new URL(a.href).pathname;
+        // Logos link home, but not always to "/": "/home" is common (e.g. Vercel).
+        const home = a.href === location.origin || path === '/' || path === '/home';
+        // Also scan the href: a logo's link ("/home", "/logo") is a strong signal
+        // the aria-label/class alone can miss.
+        const named = /logo|brand|home/i.test(`${a.className} ${a.getAttribute('aria-label') || ''} ${a.getAttribute('href') || ''}`);
         return (home || named) && (a.querySelector('svg') !== null || a.querySelector('img') !== null);
       } catch {
         return false;
