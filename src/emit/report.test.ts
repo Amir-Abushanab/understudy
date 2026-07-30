@@ -100,6 +100,9 @@ test('report: inlines an SVG logo so currentColor stays visible', () => {
   const html = toBrandReport(design({ kind: 'svg', svg: '<svg viewBox="0 0 10 10"><path fill="currentColor" d="M0 0h10v10H0z"/></svg>' }));
   assert.match(html, /<span class="logo"><svg/, 'SVG logo is inlined, not wrapped in an <img>');
   assert.doesNotMatch(html, /data:image\/svg\+xml/, 'no data-URI <img> that would collapse currentColor to black');
+  // A fill-less monochrome logo (colored by the site's own CSS, which does not
+  // travel) defaults to currentColor so it follows the hero foreground per mode.
+  assert.match(html, /\.logo svg\{fill:currentColor\}/, 'inlined logo inherits the hero foreground');
 });
 
 test('report: inlines fonts and a raster logo from the assets map', () => {

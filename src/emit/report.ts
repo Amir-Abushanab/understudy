@@ -576,6 +576,7 @@ h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute
 .src{color:var(--muted);text-decoration:none;font-size:13px}.src:hover{color:var(--accent)}
 .logo{display:inline-flex;color:var(--b-fg)}
 .logo img,.logo svg{height:30px;width:auto;max-width:150px;display:block}
+.logo svg{fill:currentColor}
 .brand-hero{position:relative;margin-top:4px;padding:44px 40px;border-radius:14px;background:var(--b-bg);color:var(--b-fg);border:1px solid var(--b-border);overflow:hidden}
 .bh-top{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:20px}
 .bh-brand{display:inline-flex;align-items:center;gap:14px;min-width:0}
