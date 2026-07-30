@@ -22,6 +22,7 @@ import { emitMotionYaml } from './emit/motion-yaml.js';
 import { toBrandCss, toTailwindConfig, toDesignTokens } from './emit/tokens.js';
 import { emitDesignModel, buildRationaleBlock, nameFromUrl, type DesignModel } from './emit/design-model.js';
 import { toBrandReport } from './emit/report.js';
+import { collectReportAssets } from './emit/inline-assets.js';
 import { mergeIntoDesignModel } from './emit/merge.js';
 import { reconcile, measuredFromYaml } from './context/reconcile.js';
 import { validateDesignModel, hasErrors, formatReport } from './validate.js';
@@ -176,9 +177,14 @@ async function main(): Promise<void> {
     console.error(`understudy: wrote ${values.dtcg}`);
   }
   if (values.report) {
-    const html = `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${nameFromUrl(url)} - brand report</title></head><body>\n${toBrandReport(design)}\n</body></html>\n`;
+    // Fetch the fonts + a raster logo and embed them, so the report is a
+    // self-contained, CSP-safe page (best-effort; unreachable assets stay URLs).
+    const assets = await collectReportAssets(design);
+    const inner = toBrandReport(design, { assets });
+    const html = `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${nameFromUrl(url)} - brand report</title></head><body>\n${inner}\n</body></html>\n`;
     writeFileSync(values.report, html);
-    console.error(`understudy: wrote ${values.report}`);
+    const inlined = assets.size ? ` (${assets.size} asset${assets.size === 1 ? '' : 's'} inlined)` : '';
+    console.error(`understudy: wrote ${values.report}${inlined}`);
   }
 
   // Validate the motion block within our own output; never let a malformed block out silently.

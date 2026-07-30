@@ -14,14 +14,20 @@ import type { BrandModel, ColorTokens, Mode, ContrastCheck, TypographyRole } fro
 import type { MotionModel } from '../analyze/model.js';
 import { parseColor, luminance } from '../brand/color.js';
 
-export function toBrandReport(design: DesignModel): string {
+const EMPTY_ASSETS: ReadonlyMap<string, string> = new Map();
+
+/** Render the report. Pass `opts.assets` (a URL -> data: URI map from
+ * collectReportAssets) to inline fonts and a raster logo for a self-contained,
+ * CSP-safe page; without it the report references the assets by URL. */
+export function toBrandReport(design: DesignModel, opts: { assets?: ReadonlyMap<string, string> } = {}): string {
   const { brand, motion } = design;
+  const assets = opts.assets ?? EMPTY_ASSETS;
   return [
-    fontFaceStyle(brand),
+    fontFaceStyle(brand, assets),
     style(),
     heroVarsCss(brand),
     `<main class="report">`,
-    brandHero(design),
+    brandHero(design, assets),
     metaBar(design),
     rationaleSection(design),
     palette(brand), accessibility(brand), typography(brand), scales(brand), elevation(brand), gradients(brand), motionSection(motion),
@@ -34,12 +40,12 @@ export function toBrandReport(design: DesignModel): string {
 
 /** The hero wears the captured brand: its background, accent, display font, and
  * logo, so the report opens by rendering the extraction as itself. */
-function brandHero(design: DesignModel): string {
+function brandHero(design: DesignModel, assets: ReadonlyMap<string, string>): string {
   const { brand } = design;
   const c = brand.colors[brand.mode];
   if (!c) return '';
   const themed = Object.keys(brand.colors).length > 1;
-  const logo = brand.logo ? logoMarkup(brand) : '';
+  const logo = brand.logo ? logoMarkup(brand, assets) : '';
   const grad = brand.gradients[0]
     ? `<div class="bh-sig"><span class="bh-sig-band" style="background:${esc(brand.gradients[0])}"></span><span class="bh-sig-label mono">signature gradient${themed ? ' · theme-aware' : ''}</span></div>`
     : '';
@@ -175,12 +181,13 @@ function host(u: string): string {
 /** Inject @font-face for the brand fonts so the real face loads where the CSP
  * allows external URLs (local report file). In the sandboxed Artifact the CSP
  * blocks them and the fallback stack renders; harmless either way. */
-function fontFaceStyle(brand: BrandModel): string {
+function fontFaceStyle(brand: BrandModel, assets: ReadonlyMap<string, string>): string {
+  const src = (u: string): string => assets.get(u) ?? u;
   const rules: string[] = [];
   const have = new Set<string>();
   for (const f of brand.typography.fontFaces) {
     if (!f.src || !f.family) continue;
-    rules.push(`@font-face{font-family:"${f.family}";src:url("${f.src}");font-weight:${f.weight};font-style:${f.style};font-display:swap}`);
+    rules.push(`@font-face{font-family:"${f.family}";src:url("${src(f.src)}");font-weight:${f.weight};font-style:${f.style};font-display:swap}`);
     have.add(norm(f.family));
   }
   const files = brand.typography.fontFiles ?? [];
@@ -190,7 +197,7 @@ function fontFaceStyle(brand: BrandModel): string {
     const token = key.slice(0, 5);
     const match = files.find((u) => norm(u).includes(token));
     if (match) {
-      rules.push(`@font-face{font-family:"${role.family}";src:url("${match}");font-weight:${role.weight};font-display:swap}`);
+      rules.push(`@font-face{font-family:"${role.family}";src:url("${src(match)}");font-weight:${role.weight};font-display:swap}`);
       have.add(key);
     }
   }
@@ -370,7 +377,7 @@ function panel(title: string, body: string): string {
   return `<section class="panel"><h2 class="mono">${title}</h2>${body}</section>`;
 }
 
-function logoMarkup(brand: BrandModel): string {
+function logoMarkup(brand: BrandModel, assets: ReadonlyMap<string, string>): string {
   const logo = brand.logo!;
   if (logo.kind === 'svg' && logo.svg) {
     // Inline the sanitized SVG rather than wrapping it in an <img>: an <img>
@@ -379,7 +386,9 @@ function logoMarkup(brand: BrandModel): string {
     // foreground (--b-fg) and stays visible in either theme.
     return `<span class="logo">${sanitizeSvg(logo.svg)}</span>`;
   }
-  if (logo.kind === 'img' && logo.src) return `<span class="logo"><img alt="logo" src="${esc(logo.src)}"/></span>`;
+  if (logo.kind === 'img' && logo.src) {
+    return `<span class="logo"><img alt="logo" src="${esc(assets.get(logo.src) ?? logo.src)}"/></span>`;
+  }
   return '';
 }
 

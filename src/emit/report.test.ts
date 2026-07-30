@@ -84,6 +84,24 @@ test('report: inlines an SVG logo so currentColor stays visible', () => {
   assert.doesNotMatch(html, /data:image\/svg\+xml/, 'no data-URI <img> that would collapse currentColor to black');
 });
 
+test('report: inlines fonts and a raster logo from the assets map', () => {
+  const d = design({ kind: 'img', src: 'https://cdn.example.com/logo.png' });
+  d.brand.typography.fontFaces = [
+    { family: 'Foo', src: 'https://cdn.example.com/foo.woff2', weight: '400', style: 'normal' },
+  ];
+  const assets = new Map([
+    ['https://cdn.example.com/foo.woff2', 'data:font/woff2;base64,AAA'],
+    ['https://cdn.example.com/logo.png', 'data:image/png;base64,BBB'],
+  ]);
+  const html = toBrandReport(d, { assets });
+  assert.match(html, /src:url\("data:font\/woff2;base64,AAA"\)/, 'font inlined from the assets map');
+  assert.match(html, /<img alt="logo" src="data:image\/png;base64,BBB"/, 'raster logo inlined from the assets map');
+  assert.doesNotMatch(html, /cdn\.example\.com/, 'no external URL remains once assets cover them');
+
+  // With no assets the report still renders, referencing the URLs (degrades, never breaks).
+  assert.match(toBrandReport(d), /cdn\.example\.com\/foo\.woff2/, 'falls back to the URL without an assets map');
+});
+
 test('report: strips scripts and on* handlers from an injected logo SVG', () => {
   const evil: LogoAsset = { kind: 'svg', svg: '<svg onload="alert(1)"><script>alert(2)</script><rect fill="#f00"/></svg>' };
   const html = toBrandReport(design(evil));
