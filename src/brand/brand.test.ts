@@ -20,6 +20,19 @@ test('scale: a fully-rounded pill radius normalizes to 9999, not a sentinel', ()
   assert.ok(!radii.some((r) => r > 9999), 'the absurd sentinel is gone from the scale');
 });
 
+test('brand: the accent stands off the background, never equals it', () => {
+  const s: StyleSnapshot[] = [];
+  // A large chromatic canvas (like Discord's dark-indigo homepage) plus a
+  // distinct brand accent on buttons (blurple).
+  for (let i = 0; i < 20; i++) s.push(snap({ background: 'rgb(26, 32, 129)', area: 20000 }));
+  for (let i = 0; i < 30; i++) s.push(snap({ color: 'rgb(255, 255, 255)', hasText: true, area: 500, fontSize: 16 }));
+  for (let i = 0; i < 8; i++) s.push(snap({ background: 'rgb(88, 101, 242)', interactive: true, area: 900, tag: 'button' }));
+  const { colors } = extractColors(s);
+  assert.equal(colors.background, '#1a2081', 'the indigo canvas is the background');
+  assert.notEqual(colors.accent, colors.background, 'the accent is not the background');
+  assert.equal(colors.accent, '#5865f2', 'the accent is the distinct button color');
+});
+
 function snap(p: Partial<StyleSnapshot>): StyleSnapshot {
   return {
     tag: 'div', area: 100, width: 100, maxWidth: 0, color: 'rgb(20, 20, 20)', background: 'rgba(0, 0, 0, 0)',

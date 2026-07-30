@@ -275,8 +275,17 @@ export function extractColors(snapshots: StyleSnapshot[], extraGradients: string
     }
   }
   const accentRanked = mergePalette(accentWeight.ranked());
-  const accent = accentRanked[0]?.key ?? text1;
-  const accents = accentRanked.slice(0, 6).map((e) => e.key);
+  // The accent must stand off the background. A large chromatic canvas (e.g.
+  // Discord's dark-indigo homepage) otherwise outweighs the real button/link
+  // color and the background wins its own accent slot. Require some contrast
+  // against the background, and never surface the background as a palette accent.
+  const standsOff = (hex: string): boolean => {
+    if (hex === background || hex === surface) return false;
+    const c = parseColor(hex);
+    return !!c && contrastRatio(luminance(composite(c, bgRgb)), bgLum) >= 1.25;
+  };
+  const accent = (accentRanked.find((e) => standsOff(e.key)) ?? accentRanked[0])?.key ?? text1;
+  const accents = accentRanked.filter((e) => e.key !== background).slice(0, 6).map((e) => e.key);
 
   // Border: a divider is a low-contrast line against the background. Filtering by
   // composited contrast excludes high-contrast component edges (which are not the
