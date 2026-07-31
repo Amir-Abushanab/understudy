@@ -97,6 +97,15 @@ comes back, cross-corroborate, and write one `rationale.json` conforming to the
 contract below. Aim for breadth of source and tier, not a single canonical page.
 Paraphrase; never quote.
 
+**Cost.** This is the only token-heavy part. Everything else (capture,
+reconciliation, the report, the token exports) is deterministic and spends no
+model tokens. Almost all of the Feel's cost is the web research: a thorough
+fan-out of roughly three parallel research agents, each reading ~20 pages, lands
+around 100-150K tokens for one site (a worked example measured ~35K / ~51K / ~47K
+across three agents, ~132K total, plus synthesis). Scale the fan-out to the depth
+you want; a quick Feel off a couple of sources is far cheaper, and re-running the
+report or exports afterward costs nothing.
+
 ### 4. Reconcile and merge
 
 ```bash
