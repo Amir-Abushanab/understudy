@@ -75,12 +75,27 @@ them.
 
 ### 3. Learn the feel (your job)
 
-- Find sources on the brand's design philosophy: any URLs the user supplied,
-  otherwise search for the brand's design principles, its engineering/design blog,
-  brand guidelines, and recent talks. Prefer the brand's own writing (tier 1-2)
-  over third-party (tier 3-4).
-- Read them (WebFetch or equivalent).
-- Write `rationale.json` conforming to the contract below.
+This is the qualitative half, and it deserves real depth. A Feel resting on two
+pages is thin. Go wide across sources and tiers:
+
+- **Official (tier 1-2).** The brand's own design-system docs, brand and voice
+  guidelines, typography/color/motion pages, and design-engineering blog. These
+  give the canonical principles and most of the stated numbers.
+- **Design writing and interviews (tier 3-4).** The designers' own talks,
+  podcasts, and interviews, plus the studio or foundry story behind a bespoke
+  typeface. These carry the voice, the motion attitude, and the craft ethos the
+  docs leave out.
+- **Third-party breakdowns (tier 3-4).** Independent design-system teardowns and
+  critiques. Do not skip these. Outside observers name the visual language
+  plainly, and they are usually where the concrete numbers that become
+  divergences surface (a documented accent color versus the one you measured).
+
+Fan this out. If you have subagents, run several in parallel, each on a different
+angle (official docs, philosophy and voice, third-party analysis), each returning
+paraphrased, cited claims with a tier and a `quantified` flag. Then read what
+comes back, cross-corroborate, and write one `rationale.json` conforming to the
+contract below. Aim for breadth of source and tier, not a single canonical page.
+Paraphrase; never quote.
 
 ### 4. Reconcile and merge
 
@@ -94,8 +109,16 @@ stays a constraint) and splices in the `rationale:` block. It re-validates.
 
 ### 5. Regenerate the report
 
-Re-run step 2's `capture` (or just reopen `report.html`) so the report opens with
-the feel, then hand back `model.yaml` + `report.html` + `tokens.css`.
+Re-run `capture` with the rationale so the model and the report both open with the
+feel, reconciled against the live measurement:
+
+```bash
+node dist/index.js capture <url> --rationale rationale.json -o model.yaml --report report.html --css tokens.css
+```
+
+Then hand back `model.yaml` + `report.html` + `tokens.css`. (Step 4's `context`
+does the same merge without re-capturing when you only need the model, not a
+re-rendered report; `--rationale` is the path when you want the Feel in the HTML.)
 
 ## The rationale contract (rationale.json)
 

@@ -25,6 +25,7 @@ import { toBrandReport } from './emit/report.js';
 import { collectReportAssets } from './emit/inline-assets.js';
 import { mergeIntoDesignModel } from './emit/merge.js';
 import { reconcile, measuredFromYaml } from './context/reconcile.js';
+import type { Rationale } from './context/types.js';
 import { validateDesignModel, hasErrors, formatReport } from './validate.js';
 
 const ALLOWED_PASSES: CapturePassName[] = ['scroll', 'hover', 'click'];
@@ -44,6 +45,8 @@ capture options:
       --tailwind <file>   also write a Tailwind theme.extend config to <file>
       --dtcg <file>       also write W3C Design Tokens (DTCG) JSON to <file>
       --report <file>     also write a visual brand report (standalone HTML) to <file>
+      --rationale <file>  merge an authored rationale.json (the Feel) into the model + report,
+                          reconciled against this capture (see: understudy context)
       --passes <list>     comma-separated subset of: scroll,hover,click (default: all)
       --window <ms>       capture window budget in ms (default: 8000)
       --settle <ms>       settle delay between steps in ms (default: 350)
@@ -63,6 +66,7 @@ async function main(): Promise<void> {
       tailwind: { type: 'string' },
       dtcg: { type: 'string' },
       report: { type: 'string' },
+      rationale: { type: 'string' },
       passes: { type: 'string' },
       window: { type: 'string' },
       settle: { type: 'string' },
@@ -142,6 +146,23 @@ async function main(): Promise<void> {
     brand,
     motion: model,
   };
+
+  // The Feel: merge an authored rationale.json, reconciled against THIS capture,
+  // so the model.yaml and report carry the qualitative layer (spec §13). Same
+  // reconciliation as `understudy context`, but against the live measurement.
+  if (values.rationale) {
+    let rationale: Rationale;
+    try {
+      rationale = JSON.parse(readFileSync(values.rationale, 'utf8')) as Rationale;
+    } catch (err) {
+      fail(`rationale.json did not parse: ${(err as Error).message}`);
+      return;
+    }
+    const root = { motion: design.motion, typography: design.brand.typography, spacing: design.brand.spacing, radii: design.brand.radii } as Record<string, unknown>;
+    const { divergences, reconciled } = reconcile((p) => measuredFromYaml(root, p), rationale);
+    design.rationale = { ...rationale, divergences, reconciled };
+    console.error(`understudy: merged feel - ${reconciled.length} reconciled, ${divergences.length} divergence(s)`);
+  }
 
   const motionYaml = emitMotionYaml(model);
   const outputYaml = values['motion-only'] ? motionYaml : emitDesignModel(design);
