@@ -257,6 +257,10 @@ function rationaleSection(design: DesignModel): string {
           .map((d) => `<tr><td class="mono">${esc(d.token)}</td><td class="mono">${esc(String(d.documented))}</td><td class="mono dim">measured ${esc(String(d.measured))}</td><td class="mono">${esc(d.resolution)}</td></tr>`)
           .join('')}</tbody></table>`
       : '';
+  const reconciled =
+    r.reconciled && r.reconciled.length > 0
+      ? `<div class="sub">confirmed against the live measurement</div><ul class="rlist ok">${r.reconciled.map((t) => `<li class="mono">${esc(t)}</li>`).join('')}</ul>`
+      : '';
   const srcList = sources
     .map((s, i) => `<li><span class="mono dim">[${i + 1}] tier ${s.tier}</span> <a href="${esc(s.url)}">${esc(s.title ?? shortUrl(s.url))}</a></li>`)
     .join('');
@@ -267,6 +271,7 @@ function rationaleSection(design: DesignModel): string {
     ${principles ? `<div class="sub">principles</div><ul class="rlist">${principles}</ul>` : ''}
     ${constraints ? `<div class="sub">constraints (what it refuses to do)</div><ul class="rlist neg">${constraints}</ul>` : ''}
     ${divergences}
+    ${reconciled}
     ${srcList ? `<div class="sub">sources</div><ul class="rlist srcs">${srcList}</ul>` : ''}
   </section>`;
 }
@@ -843,6 +848,7 @@ h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute
 .rlist{margin:6px 0 0;padding-left:20px;font-size:14px;line-height:1.6}
 .rlist li{margin-bottom:5px}
 .rlist.neg li::marker{content:"✕  ";color:var(--bad)}
+.rlist.ok li::marker{content:"✓  ";color:var(--ok)}
 .rlist.srcs{font-size:12px;color:var(--muted)}
 .cite{color:var(--accent);text-decoration:none;font-size:11px;vertical-align:super}
 .qtag{font-size:9px;color:var(--muted);border:1px solid var(--line);border-radius:3px;padding:1px 5px;margin-left:4px}
