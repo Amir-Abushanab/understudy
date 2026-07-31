@@ -78,12 +78,24 @@ function brandHero(design: DesignModel, assets: ReadonlyMap<string, string>): st
 
 /** A light/dark switch for a dual-mode brand, wearing the brand's own colors.
  * Empty for a single-mode brand. */
+/** Sun for light, moon for dark, in the same stroke style as the meta icons. */
+function modeIcon(m: Mode): string {
+  const a = 'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
+  const inner =
+    m === 'dark'
+      ? '<path d="M20.5 13.2A8 8 0 1 1 10.8 3.5 6.2 6.2 0 0 0 20.5 13.2z"/>'
+      : '<circle cx="12" cy="12" r="4.1"/><path d="M12 2.3v2.2M12 19.5v2.2M2.3 12h2.2M19.5 12h2.2M5 5l1.5 1.5M17.5 17.5l1.5 1.5M19 5l-1.5 1.5M6.5 17.5L5 19"/>';
+  return `<svg class="mode-ic" viewBox="0 0 24 24" ${a} aria-hidden="true">${inner}</svg>`;
+}
+
 function modeSwitch(brand: BrandModel): string {
   const has = brand.colors;
   if (Object.keys(has).length < 2) return '';
   const btn = (m: Mode): string =>
-    has[m] ? `<button type="button" class="bh-mode-btn" data-set-mode="${m}"${m === brand.mode ? ' aria-current="true"' : ''}>${m}</button>` : '';
-  return `<div class="bh-mode" role="group" aria-label="Brand color mode">${btn('light')}${btn('dark')}</div>`;
+    has[m]
+      ? `<button type="button" class="bh-mode-btn" data-set-mode="${m}"${m === brand.mode ? ' aria-current="true"' : ''}>${modeIcon(m)}<span>${m}</span></button>`
+      : '';
+  return `<div class="bh-mode" role="group" aria-label="Brand color mode"><span class="bh-mode-thumb seg-thumb" aria-hidden="true"></span>${btn('light')}${btn('dark')}</div>`;
 }
 
 /** Hero brand variables as CSS. A single-mode brand's hero is fixed to its mode;
@@ -504,7 +516,7 @@ function colorFormatBar(): string {
         `<button type="button" class="cfmt-btn" data-set-cfmt="${o.fmt}"${o.fmt === DEFAULT_NOTATION ? ' aria-current="true"' : ''}>${o.label}</button>`,
     )
     .join('');
-  return `<div class="cfmt-bar"><span class="cfmt-cap mono">color format</span><div class="cfmt" role="group" aria-label="Color notation"><span class="cfmt-thumb" aria-hidden="true"></span>${btns}</div></div>`;
+  return `<div class="cfmt-bar"><span class="cfmt-cap mono">color format</span><div class="cfmt" role="group" aria-label="Color notation"><span class="cfmt-thumb seg-thumb" aria-hidden="true"></span>${btns}</div></div>`;
 }
 
 function exportBar(): string {
@@ -605,6 +617,7 @@ function exportScript(): string {
     report.setAttribute('data-brand-mode',b.getAttribute('data-set-mode'));
     b.parentNode.querySelectorAll('[data-set-mode]').forEach(function(x){x.removeAttribute('aria-current');});
     b.setAttribute('aria-current','true');
+    moveThumb(b);
   });});}
   var toast=document.createElement('div');toast.className='copied-toast';document.body.appendChild(toast);
   document.querySelectorAll('[data-copy-value]').forEach(function(el){el.addEventListener('click',function(e){e.stopPropagation();
@@ -633,24 +646,26 @@ function exportScript(): string {
     var ab=document.querySelector('[data-set-cfmt="'+fmt+'"]');if(ab)moveThumb(ab);
   }
   function moveThumb(btn){
-    var cf=btn.closest('.cfmt');if(!cf)return;var thumb=cf.querySelector('.cfmt-thumb');if(!thumb)return;
+    var group=btn.parentNode;if(!group)return;var thumb=group.querySelector('.seg-thumb');if(!thumb)return;
     var tr=thumb.getBoundingClientRect(),br=btn.getBoundingClientRect();
     thumb.style.clipPath='inset(0 '+Math.max(0,tr.right-br.right)+'px 0 '+Math.max(0,br.left-tr.left)+'px round 6px)';
   }
   document.querySelectorAll('[data-set-cfmt]').forEach(function(b){b.addEventListener('click',function(){setCfmt(b.getAttribute('data-set-cfmt'));});});
-  document.querySelectorAll('.cfmt').forEach(function(cf){cf.addEventListener('keydown',function(e){ // left/right arrows rove the notation switch
+  document.querySelectorAll('.cfmt,.bh-mode').forEach(function(g){g.addEventListener('keydown',function(e){ // left/right arrows rove either segmented switch
     if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft')return;
-    var btns=[].slice.call(cf.querySelectorAll('[data-set-cfmt]')),i=btns.indexOf(document.activeElement);
+    var btns=[].slice.call(g.querySelectorAll('[data-set-cfmt],[data-set-mode]')),i=btns.indexOf(document.activeElement);
     if(i<0)return;e.preventDefault();
     var n=e.key==='ArrowRight'?(i+1)%btns.length:(i-1+btns.length)%btns.length;
-    btns[n].focus();setCfmt(btns[n].getAttribute('data-set-cfmt'));
+    btns[n].focus();btns[n].click();
   });});
   updateDownloads(); // sync baked (hex) download hrefs to the OKLCH the code blocks render by default
-  var cfActive=document.querySelector('.cfmt [data-set-cfmt][aria-current="true"]');
-  if(cfActive){moveThumb(cfActive);var cfBox=cfActive.closest('.cfmt');
-    var cfReady=function(){if(cfBox)cfBox.classList.add('cfmt-ready');};
-    requestAnimationFrame(cfReady);setTimeout(cfReady,80); // rAF for the common case; timeout survives hidden/throttled tabs
-    window.addEventListener('resize',function(){var a=document.querySelector('.cfmt [data-set-cfmt][aria-current="true"]');if(a)moveThumb(a);});}
+  function initSeg(g){var active=g.querySelector('[aria-current="true"]');if(!active)return;
+    moveThumb(active);
+    var ready=function(){g.classList.add('seg-ready');};
+    requestAnimationFrame(ready);setTimeout(ready,80); // rAF for the common case; timeout survives hidden/throttled tabs
+  }
+  document.querySelectorAll('.cfmt,.bh-mode').forEach(initSeg);
+  window.addEventListener('resize',function(){document.querySelectorAll('.cfmt,.bh-mode').forEach(function(g){var a=g.querySelector('[aria-current="true"]');if(a)moveThumb(a);});});
 })();</script>`;
 }
 
@@ -738,9 +753,13 @@ h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute
 .brand-hero{position:relative;margin-top:4px;padding:44px 40px;border-radius:14px;background:var(--b-bg);color:var(--b-fg);border:1px solid var(--b-border);overflow:hidden}
 .bh-top{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:20px}
 .bh-brand{display:inline-flex;align-items:center;gap:14px;min-width:0}
-.bh-mode{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--b-border);border-radius:8px;flex:none}
-.bh-mode-btn{background:none;border:none;color:var(--b-fg2);font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;cursor:pointer;padding:5px 12px;border-radius:6px}
-.bh-mode-btn[aria-current="true"]{background:var(--b-accent);color:var(--b-on-accent)}
+.bh-mode{position:relative;display:inline-flex;gap:2px;padding:3px;border:1px solid var(--b-border);border-radius:8px;flex:none}
+.bh-mode-thumb{background:var(--b-accent)}
+.bh-mode-btn{position:relative;z-index:1;background:none;border:none;color:var(--b-fg2);font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;cursor:pointer;padding:5px 11px;border-radius:6px;display:inline-flex;align-items:center;gap:6px;transition:color .2s ease}
+.bh-mode-btn[aria-current="true"]{color:var(--b-on-accent);transition:color .2s ease .14s}
+.bh-mode-btn:hover:not([aria-current="true"]){color:var(--b-fg)}
+.bh-mode-btn:focus-visible{outline:2px solid var(--b-accent);outline-offset:2px}
+.mode-ic{width:13px;height:13px;flex:none}
 .bh-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--b-accent)}
 .bh-name{font-family:var(--b-display);font-weight:var(--b-display-w);font-size:clamp(38px,7vw,68px);line-height:1.02;letter-spacing:-.02em;margin:0 0 10px;color:var(--b-fg);text-wrap:balance}
 .bh-src{color:var(--b-fg2);text-decoration:none;font-size:14px}.bh-src:hover{color:var(--b-accent)}
@@ -855,13 +874,16 @@ h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute
 /* A single accent pill spanning the track, clip-path'd to the active segment; the
    clip animates so it wipes/slides between notations. Text color for the incoming
    segment is delayed so it stays legible until the pill arrives under it. */
-.cfmt-thumb{position:absolute;top:3px;left:3px;right:3px;bottom:3px;background:var(--accent);border-radius:6px;clip-path:inset(0 100% 0 0 round 6px);pointer-events:none;z-index:0}
-.cfmt-ready .cfmt-thumb{transition:clip-path .34s cubic-bezier(.4,0,.2,1)}
+/* Shared segmented-control pill: an accent thumb clip-path'd to the active
+   segment (used by the notation switch and the light/dark switch). */
+.seg-thumb{position:absolute;top:3px;left:3px;right:3px;bottom:3px;border-radius:6px;clip-path:inset(0 100% 0 0 round 6px);pointer-events:none;z-index:0}
+.seg-ready .seg-thumb{transition:clip-path .34s cubic-bezier(.4,0,.2,1)}
+.cfmt-thumb{background:var(--accent)}
 .cfmt-btn{position:relative;z-index:1;background:none;border:none;color:var(--muted);font-family:var(--mono);font-size:11px;letter-spacing:.03em;cursor:pointer;padding:6px 10px;border-radius:6px;transition:color .2s ease}
 .cfmt-btn[aria-current="true"]{color:var(--panel);transition:color .2s ease .14s}
 .cfmt-btn:hover:not([aria-current="true"]){color:var(--ink)}
 .cfmt-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-@media(prefers-reduced-motion:reduce){.cfmt-ready .cfmt-thumb{transition:none}}
+@media(prefers-reduced-motion:reduce){.seg-ready .seg-thumb{transition:none}}
 .xport{position:relative;display:inline-flex;align-items:stretch;margin:20px 6px 0;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
 .xport-copy,.xport-toggle{background:none;border:none;color:var(--ink);font-family:var(--sans);font-size:13px;cursor:pointer;padding:9px 14px;display:inline-flex;align-items:center;gap:8px}
 .xport-copy{font-weight:600;border-right:1px solid var(--line);border-radius:9px 0 0 9px;justify-content:center;min-width:118px}

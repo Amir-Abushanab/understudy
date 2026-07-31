@@ -119,10 +119,10 @@ test('report: exported tokens follow the notation switch', () => {
 test('report: switcher slides via clip-path and copy feedback crossfades through blur', () => {
   const html = toBrandReport(design());
   // The notation switcher: a single accent thumb, moved by clip-path.
-  assert.match(html, /<span class="cfmt-thumb" aria-hidden="true">/, 'switcher has a sliding thumb');
+  assert.match(html, /<span class="cfmt-thumb seg-thumb" aria-hidden="true">/, 'switcher has a sliding thumb');
   assert.match(html, /function moveThumb/, 'thumb is repositioned on switch');
   assert.match(html, /thumb\.style\.clipPath='inset\(/, 'the thumb slides via clip-path');
-  assert.match(html, /\.cfmt-ready \.cfmt-thumb\{transition:clip-path/, 'clip-path is transitioned');
+  assert.match(html, /\.seg-ready \.seg-thumb\{transition:clip-path/, 'clip-path is transitioned');
   // Copy feedback: label swap and toast both crossfade through a blur.
   assert.match(html, /function swapLabel/, 'copy label swaps behind a blur');
   assert.match(html, /\.blurring\{opacity:0;filter:blur\(/, 'copy button blur crossfade CSS');
@@ -204,6 +204,11 @@ test('report: a dual-mode brand gets a light/dark switch, one mode at a time', (
   const html = toBrandReport(d);
   assert.match(html, /<main class="report" data-brand-mode="light">/, 'report root carries the active brand mode');
   assert.match(html, /class="bh-mode"[\s\S]*?data-set-mode="light"[\s\S]*?data-set-mode="dark"/, 'hero has a light/dark switch');
+  // The light/dark switch: corresponding sun/moon icons + the same clip-path thumb.
+  assert.match(html, /<span class="bh-mode-thumb seg-thumb" aria-hidden="true">/, 'the light/dark switch has a sliding thumb');
+  assert.match(html, /data-set-mode="light"[^>]*><svg class="mode-ic"[\s\S]*?<circle cx="12" cy="12" r="4\.1"/, 'the light button carries a sun icon');
+  assert.match(html, /data-set-mode="dark"[^>]*><svg class="mode-ic"[\s\S]*?<path d="M20\.5 13\.2/, 'the dark button carries a moon icon');
+  assert.match(html, /\.bh-mode-thumb\{background:var\(--b-accent\)\}/, 'the mode thumb uses the brand accent');
   assert.match(html, /class="mode-block" data-mode="dark"/, 'palette blocks are mode-tagged for hiding');
   assert.match(html, /\[data-brand-mode="light"\] \[data-mode="dark"\]\{display:none\}/, 'CSS hides the inactive mode');
   assert.doesNotMatch(toBrandReport(design()), /data-set-mode="/, 'a single-mode brand has no switch button');
