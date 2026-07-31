@@ -133,9 +133,12 @@ function representativeRole(pool: StyleSnapshot[], preferLargest = false): Typog
   return role;
 }
 
-/** The semantic heading scale: the dominant (area-weighted) size/weight per h1..h6. */
+/** The semantic heading scale: the dominant (area-weighted) size/weight per h1..h6,
+ * then collapsed to distinct sizes and presented largest-first. Sites that set two
+ * levels to the same size (h1==h2) or map tags non-monotonically (a big h4 above a
+ * small h3) otherwise produce duplicate or out-of-order rows. */
 function headingScale(snapshots: StyleSnapshot[]): Record<string, { size: number; weight: number }> {
-  const out: Record<string, { size: number; weight: number }> = {};
+  const perLevel: Array<{ level: string; size: number; weight: number }> = [];
   for (const level of ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']) {
     const groups = new Map<string, { size: number; weight: number; area: number }>();
     for (const s of snapshots) {
@@ -146,7 +149,18 @@ function headingScale(snapshots: StyleSnapshot[]): Record<string, { size: number
       groups.set(key, g);
     }
     const best = [...groups.values()].sort((a, b) => b.area - a.area)[0];
-    if (best) out[level] = { size: best.size, weight: best.weight };
+    if (best) perLevel.push({ level, size: best.size, weight: best.weight });
+  }
+
+  // Distinct sizes, largest-first; when two levels share a size keep the more
+  // primary one (h1 over h2). Merge sizes within 1px (rounding noise, not steps).
+  perLevel.sort((a, b) => b.size - a.size || Number(a.level.slice(1)) - Number(b.level.slice(1)));
+  const out: Record<string, { size: number; weight: number }> = {};
+  let lastKept = Infinity;
+  for (const h of perLevel) {
+    if (lastKept - h.size <= 1) continue;
+    out[h.level] = { size: h.size, weight: h.weight };
+    lastKept = h.size;
   }
   return out;
 }

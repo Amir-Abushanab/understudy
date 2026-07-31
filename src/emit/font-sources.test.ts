@@ -28,6 +28,17 @@ test('font-sources: a variable-font name falls back to the base family', () => {
   assert.equal(fontSource('Acme Custom VF')?.repo, 'Fontsource');
 });
 
+test('font-sources: camelCase and style-suffixed names resolve to their Google Fonts base', () => {
+  assert.equal(fontSource('SourceCodePro')?.url, 'https://fonts.google.com/specimen/Source+Code+Pro');
+  assert.equal(fontSource('GeistSans')?.url, 'https://fonts.google.com/specimen/Geist');
+  assert.equal(fontSource('Geist Mono')?.url, 'https://fonts.google.com/specimen/Geist+Mono');
+  // A deliberately-spaced non-catalog name is never over-stripped to a catalog word.
+  assert.equal(fontSource('Anthropic Sans')?.repo, 'Fontsource');
+  // A real catalog name ending in a style word is matched exactly, never stripped.
+  assert.equal(fontSource('Open Sans')?.url, 'https://fonts.google.com/specimen/Open+Sans');
+  assert.equal(fontSource('DM Sans')?.url, 'https://fonts.google.com/specimen/DM+Sans');
+});
+
 test('font-sources: an off-catalog family falls back to a Fontsource search, honestly labeled', () => {
   const r = fontSource('SF Pro Text'); // Apple system font, not on Google Fonts
   assert.equal(r?.repo, 'Fontsource');

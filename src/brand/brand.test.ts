@@ -9,6 +9,7 @@ import type { StyleSnapshot } from './types.js';
 import { assembleBrand } from './index.js';
 import { extractColors, luminance, parseColor, mergePalette } from './color.js';
 import { radiusScale } from './scale.js';
+import { extractTypography } from './typography.js';
 
 test('scale: a fully-rounded pill radius normalizes to 9999, not a sentinel', () => {
   const s: StyleSnapshot[] = [];
@@ -44,6 +45,18 @@ test('brand: recovers a toggle-based dark mode that prefers-color-scheme misses'
   assert.deepEqual(Object.keys(brand.colors).sort(), ['dark', 'light'], 'both modes recovered via the toggle');
   assert.equal(brand.colors.light?.background, '#ffffff');
   assert.equal(brand.colors.dark?.background, '#0d1117');
+});
+
+test('typography: the heading scale collapses duplicate sizes and orders them largest-first', () => {
+  const s: StyleSnapshot[] = [];
+  // h1 and h2 both at 58px (common), plus a non-monotonic big h4 above a small h3.
+  for (let i = 0; i < 4; i++) s.push(snap({ tag: 'h1', fontSize: 58, fontWeight: 700, area: 3000, hasText: true }));
+  for (let i = 0; i < 4; i++) s.push(snap({ tag: 'h2', fontSize: 58, fontWeight: 600, area: 2000, hasText: true }));
+  for (let i = 0; i < 4; i++) s.push(snap({ tag: 'h3', fontSize: 20, fontWeight: 600, area: 900, hasText: true }));
+  for (let i = 0; i < 4; i++) s.push(snap({ tag: 'h4', fontSize: 40, fontWeight: 600, area: 1200, hasText: true }));
+  for (let i = 0; i < 20; i++) s.push(snap({ fontSize: 16, hasText: true, area: 500 }));
+  const sizes = Object.values(extractTypography(s).headings ?? {}).map((h) => h.size);
+  assert.deepEqual(sizes, [58, 40, 20], 'the duplicate 58px collapses to one and sizes read largest-first');
 });
 
 function snap(p: Partial<StyleSnapshot>): StyleSnapshot {
