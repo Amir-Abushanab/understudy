@@ -97,8 +97,15 @@ node scripts/validate.mjs ./motion.yaml
 
 understudy is one canonical `SKILL.md` plus a plain-Node CLI. The CLI measures
 the ground truth; your agent learns the feel on top and reconciles it against the
-measurement (`understudy context`). The same skill rides several agents through
-thin, generated entry points:
+measurement (`understudy context`).
+
+That split is also the cost story. The measurement half is deterministic and
+spends no model tokens, so the whole token cost is the feel's web research. Budget
+roughly **100K to 300K tokens** for a thorough, well-sourced feel on one site
+(scale it down for a lighter one); re-rendering the report or regenerating exports
+afterward is free. The skill's step 3 breaks this down.
+
+The same skill rides several agents through thin, generated entry points:
 
 | Agent           | Entry point                                     | Invoke                                                            |
 | --------------- | ----------------------------------------------- | ---------------------------------------------------------------- |

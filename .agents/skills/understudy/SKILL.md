@@ -49,6 +49,9 @@ the same way. The CLI itself is just Node.
 Extract only from URLs the user supplies, one at a time. Capture respects
 robots.txt, stays on the target origin, and never authenticates or submits forms.
 
+The measurement half is deterministic and spends no model tokens; the *feel* is a
+web-research step that typically costs 100K to 300K tokens for one site (step 3).
+
 ## The recipe
 
 ### 1. Ready the tool
@@ -99,12 +102,11 @@ Paraphrase; never quote.
 
 **Cost.** This is the only token-heavy part. Everything else (capture,
 reconciliation, the report, the token exports) is deterministic and spends no
-model tokens. Almost all of the Feel's cost is the web research: a thorough
-fan-out of roughly three parallel research agents, each reading ~20 pages, lands
-around 100-150K tokens for one site (a worked example measured ~35K / ~51K / ~47K
-across three agents, ~132K total, plus synthesis). Scale the fan-out to the depth
-you want; a quick Feel off a couple of sources is far cheaper, and re-running the
-report or exports afterward costs nothing.
+model tokens. Almost all of the Feel's cost is the web research: budget roughly
+100K to 300K tokens for a thorough, well-sourced Feel on one site (a three-agent
+fan-out reading ~20 pages each measured around 130K here, plus synthesis; a quick
+Feel off a couple of sources is a fraction of that). Re-running the report or
+exports afterward costs nothing.
 
 ### 4. Reconcile and merge
 
