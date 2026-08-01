@@ -59,6 +59,25 @@ test('typography: the heading scale collapses duplicate sizes and orders them la
   assert.deepEqual(sizes, [58, 40, 20], 'the duplicate 58px collapses to one and sizes read largest-first');
 });
 
+test('typography: a stray uppercase mono badge does not make the whole mono role shout', () => {
+  const s: StyleSnapshot[] = [];
+  for (let i = 0; i < 12; i++) s.push(snap({ fontFamily: 'Inter', fontSize: 16, fontWeight: 400, area: 700, hasText: true }));
+  // mono: the largest single cluster is uppercase labels, but most mono area is normal-case code.
+  for (let i = 0; i < 6; i++) s.push(snap({ fontFamily: 'Roboto Mono', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', area: 500, hasText: true }));
+  for (let i = 0; i < 5; i++) s.push(snap({ fontFamily: 'Roboto Mono', fontSize: 14, fontWeight: 400, area: 500, hasText: true }));
+  for (let i = 0; i < 5; i++) s.push(snap({ fontFamily: 'Roboto Mono', fontSize: 13, fontWeight: 400, area: 500, hasText: true }));
+  const mono = extractTypography(s).mono;
+  assert.ok(mono, 'a mono role is detected');
+  assert.equal(mono?.transform, undefined, 'minority uppercase does not set the mono transform');
+
+  // But genuinely-dominant uppercase mono keeps it.
+  const s2: StyleSnapshot[] = [];
+  for (let i = 0; i < 12; i++) s2.push(snap({ fontFamily: 'Inter', fontSize: 16, area: 700, hasText: true }));
+  for (let i = 0; i < 10; i++) s2.push(snap({ fontFamily: 'Roboto Mono', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', area: 500, hasText: true }));
+  for (let i = 0; i < 2; i++) s2.push(snap({ fontFamily: 'Roboto Mono', fontSize: 14, fontWeight: 400, area: 500, hasText: true }));
+  assert.equal(extractTypography(s2).mono?.transform, 'uppercase', 'dominant uppercase mono keeps the transform');
+});
+
 function snap(p: Partial<StyleSnapshot>): StyleSnapshot {
   return {
     tag: 'div', area: 100, width: 100, maxWidth: 0, color: 'rgb(20, 20, 20)', background: 'rgba(0, 0, 0, 0)',

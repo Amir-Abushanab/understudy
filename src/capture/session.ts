@@ -97,12 +97,7 @@ export async function captureSite(options: CaptureOptions): Promise<SiteCapture>
     // Brand snapshots in both color schemes. Motion is already frozen in `raw`,
     // so forcing a scheme (which can trigger theme transitions) cannot pollute it.
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'auto' }));
-    const defaultBackground = await page.evaluate(() => {
-      const body = getComputedStyle(document.body).backgroundColor;
-      const html = getComputedStyle(document.documentElement).backgroundColor;
-      const transparent = (c: string): boolean => !c || c === 'transparent' || /rgba?\([^)]*,\s*0\s*\)$/.test(c);
-      return transparent(body) ? html : body;
-    });
+    const defaultBackground = await page.evaluate(pageBackgroundInPage);
 
     // Interaction-state colors: hover safe targets and note chromatic shifts.
     const hoverAccents = await captureHoverAccents(page);
@@ -150,6 +145,41 @@ export async function captureSite(options: CaptureOptions): Promise<SiteCapture>
   }
 }
 
+/** The color actually painted behind the page. body/html cover most sites, but
+ * many leave both transparent and paint the background on a full-bleed wrapper
+ * <div> (Tailwind's `dark:bg-*`, an app root like #__next). When both are
+ * transparent, sample the background through the page gutters, so wrapper-painted
+ * backgrounds (and the ones a theme toggle flips) are actually seen. Runs in the
+ * page; self-contained so it can be serialized to page.evaluate. */
+function pageBackgroundInPage(): string {
+  const transparent = (c: string): boolean => !c || c === 'transparent' || /rgba?\([^)]*,\s*0\s*\)$/.test(c);
+  const bg = (el: Element | null): string => (el ? getComputedStyle(el).backgroundColor : '');
+  const html = document.documentElement;
+  if (!transparent(bg(document.body))) return bg(document.body);
+  if (!transparent(bg(html))) return bg(html);
+  const firstOpaque = (el: Element | null): string => {
+    let n: Element | null = el;
+    while (n && n !== html) {
+      const c = bg(n);
+      if (!transparent(c)) return c;
+      n = n.parentElement;
+    }
+    return bg(html);
+  };
+  const vw = window.innerWidth || 1280;
+  const mid = Math.round((window.innerHeight || 800) / 2);
+  const points: [number, number][] = [
+    [3, mid],
+    [vw - 3, mid],
+    [Math.round(vw / 2), 3],
+  ];
+  for (const [x, y] of points) {
+    const c = firstOpaque(document.elementFromPoint(x, y));
+    if (!transparent(c)) return c;
+  }
+  return bg(html) || bg(document.body);
+}
+
 /** Find and click a manual theme/appearance toggle, then snapshot the result, so
  * toggle-based dark modes — which prefers-color-scheme emulation cannot trigger —
  * are still captured. Best-effort and safe: it never follows a navigating link,
@@ -157,14 +187,8 @@ export async function captureSite(options: CaptureOptions): Promise<SiteCapture>
  * snapshot the assembler discards (no luminance change). */
 async function tryThemeToggle(page: Page): Promise<Awaited<ReturnType<typeof snapshotStyles>> | null> {
   try {
-    // Effective page background: many sites leave <body> transparent and paint the
-    // background on <html>, so fall through when body is transparent (rgba .. ,0).
-    const bgOf = (): Promise<string> =>
-      page.evaluate(() => {
-        const transparent = (c: string): boolean => !c || c === 'transparent' || /rgba?\([^)]*,\s*0\s*\)$/.test(c);
-        const body = getComputedStyle(document.body).backgroundColor;
-        return transparent(body) ? getComputedStyle(document.documentElement).backgroundColor : body;
-      });
+    // Effective page background, including wrapper-<div>-painted ones (see helper).
+    const bgOf = (): Promise<string> => page.evaluate(pageBackgroundInPage);
     const initial = await bgOf();
 
     // Drive the CSS dark-mode mechanism directly rather than hunting for a toggle

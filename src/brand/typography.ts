@@ -120,8 +120,23 @@ function representativeRole(pool: StyleSnapshot[], preferLargest = false): Typog
     lineHeight: best.lineHeight > 0 ? round(best.lineHeight / best.fontSize, 2) : 0,
     letterSpacing: best.letterSpacing,
   };
-  if (best.textTransform && best.textTransform !== 'none') role.transform = best.textTransform;
-  if (best.fontStyle && best.fontStyle !== 'normal') role.style = best.fontStyle;
+  // transform and style vary by usage within a role (a stray uppercase mono badge,
+  // a lone italic), so take the pool's area-weighted majority, not the one best
+  // sample. Otherwise a handful of uppercase labels make the whole mono role shout.
+  const totalArea = pool.reduce((sum, s) => sum + s.area, 0) || 1;
+  const dominant = (get: (s: StyleSnapshot) => string, ignore: string): string | undefined => {
+    const tally = new Map<string, number>();
+    for (const s of pool) {
+      const v = get(s);
+      if (v && v !== ignore) tally.set(v, (tally.get(v) ?? 0) + s.area);
+    }
+    const top = [...tally.entries()].sort((a, b) => b[1] - a[1])[0];
+    return top && top[1] / totalArea >= 0.5 ? top[0] : undefined;
+  };
+  const transform = dominant((s) => s.textTransform, 'none');
+  if (transform) role.transform = transform;
+  const style = dominant((s) => s.fontStyle, 'normal');
+  if (style) role.style = style;
   if (best.fontStretch && best.fontStretch !== 'normal' && best.fontStretch !== '100%') role.stretch = best.fontStretch;
   if (best.fontVariantNumeric && best.fontVariantNumeric !== 'normal') role.numeric = best.fontVariantNumeric;
   if (best.fontFeatureSettings && best.fontFeatureSettings !== 'normal' && best.fontFeatureSettings !== 'none') {
