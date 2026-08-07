@@ -82,6 +82,12 @@ pnpm capture https://example.com --passes scroll --window 12000
 # also emit CSS custom properties
 pnpm capture https://example.com -o motion.yaml --css tokens.css
 
+# also emit an interactive, self-contained HTML brand report
+pnpm capture https://example.com --report report.html
+
+# merge an agent-authored Feel (the qualitative layer) into the model + report
+pnpm capture https://example.com --rationale rationale.json --report report.html
+
 # any other subcommand or flag: pnpm dev <args>
 pnpm dev validate ./motion.yaml
 
@@ -178,6 +184,16 @@ shorthand shown; any other provenance uses the long form
 `--motion-only` to emit just the `motion:` block. The motion contract is detailed
 in [`understudy-spec.md`](./understudy-spec.md) section 5.
 
+Beyond the YAML, the same capture also emits **CSS custom properties** (`--css`), a
+**Tailwind `theme.extend`** (`--tailwind`), **W3C DTCG tokens** (`--dtcg`), and a
+self-contained **interactive HTML report** (`--report`). The report is a single
+CSP-safe file (fonts and logo inlined) that renders the measured palette in **OKLCH
+by default with a header switch to hex/rgb/hsl** (the token exports follow the
+switch too), the type scale and styled specimens with font-family links, gradients,
+the motion easings as **playable** curves, a **light/dark switch** when the brand
+themes, and, when an agent has authored one, the cited **Feel** with its
+measured-vs-documented reconciliation.
+
 ## How it works
 
 1. **Instrument** (`src/capture/instrument.ts`), injected before any page script.
@@ -193,8 +209,15 @@ in [`understudy-spec.md`](./understudy-spec.md) section 5.
 4. **Recover** (`src/analyze/*`, `src/brand/*`): cluster start times into staggers,
    prefer declared easings and fit rAF ones, detect springs; and resolve the color
    palette by role, the type/spacing/radius scales, weighted by rendered area.
-5. **Emit** (`src/emit/*`): the full `design-model.yaml`, motion CSS custom
-   properties, or an in-place merge of the motion block into an existing model.
+5. **Emit** (`src/emit/*`): the `design-model.yaml`, CSS custom properties, a
+   Tailwind config, W3C DTCG tokens, an interactive HTML report, or an in-place
+   merge of the motion block into an existing model.
+
+Steps 1-5 are deterministic and spend no model tokens. The qualitative **feel** is a
+separate, agent-authored phase: the agent researches the brand's own design writing,
+writes a cited `rationale.json`, and `understudy context` (or `capture --rationale`)
+reconciles its documented numbers against the measurement before splicing it into
+the model and the report. See "Use it from your coding agent."
 
 ## Confidence
 
@@ -244,16 +267,18 @@ pre-indexed corpus, by design.
 
 ## Scope
 
-In scope for this version: instrumented capture of `Element.animate`,
-requestAnimationFrame, CSS transitions and animations; scroll, hover, and click
-passes; stagger recovery; easing and spring fitting; the `motion` block and its
-validator.
+In scope: instrumented capture of `Element.animate`, requestAnimationFrame, CSS
+transitions and animations; scroll, hover, and click passes; stagger recovery;
+easing and spring fitting; the full brand extraction (color, type, spacing, radii);
+the emit targets above (`design-model.yaml`, CSS, Tailwind, W3C DTCG, and the visual
+HTML report); and the qualitative **feel** — an agent authors a cited
+`rationale.json` from the brand's design writing, and `understudy context` (or
+`capture --rationale`) reconciles its documented numbers against the measurement
+(see "Use it from your coding agent").
 
 Out of scope: generating or applying components (downstream skills do that), and
-video, Lottie, or WebGL/canvas motion. Deferred to later versions: capturing stated
-design rationale from published guidelines and reconciling it against measurement,
-and shadcn registry distribution. Both are specified so this version does not
-foreclose them.
+video, Lottie, or WebGL/canvas motion. Deferred to a later version: shadcn registry
+distribution, specified so this version does not foreclose it.
 
 ## Validate
 
