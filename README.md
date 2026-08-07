@@ -54,8 +54,8 @@ samples, so rAF motion is as visible as a CSS transition.
 
 ## Install
 
-Requires Node 20+. Clone and run; there is no account, no API key, no hosted
-service.
+Requires Node 22+ (Node 20 is end-of-life, and the pinned pnpm needs 22.13+).
+Clone and run; there is no account, no API key, no hosted service.
 
 ```bash
 git clone <this-repo> understudy && cd understudy
