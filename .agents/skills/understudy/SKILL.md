@@ -19,15 +19,12 @@ understudy learns a site's brand identity in two channels that keep each other
 honest:
 
 1. **The tool measures.** A bundled Node CLI drives a real, instrumented browser
-   and reads the brand off the *rendered* result: the color palette (semantic
-   roles, light/dark modes), type families and scale, spacing and radius scales,
-   and the motion. It is deterministic and needs no model or API key. Reading the
-   computed values beats inferring them from a screenshot, especially for
-   CSS-in-JS with hashed class names. Motion is the part nobody else measures:
-   static analysis cannot see `requestAnimationFrame` motion (GSAP, Lenis, Framer
-   Motion's imperative API), where distinctive brand motion lives. understudy
-   sees it by sampling the moving properties frame by frame, then cross-verifying
-   against the page's declared CSS/WAAPI values.
+   and reads the brand off the *rendered* page: the color palette (semantic roles,
+   light/dark), type families and scale, spacing and radius scales, and motion. It
+   reads computed values, not a screenshot, so it holds up under CSS-in-JS with
+   hashed classes, and it recovers `requestAnimationFrame` motion (GSAP, Lenis,
+   Framer Motion) by sampling frame by frame and cross-verifying against the page's
+   declared CSS/WAAPI values. Deterministic; no model or API key.
 
 2. **You learn the feel.** Tokens cannot convey what a brand is *going for*. You
    read the brand's own design writing and synthesize a cited rationale, which the
@@ -81,17 +78,16 @@ them.
 This is the qualitative half, and it deserves real depth. A Feel resting on two
 pages is thin. Go wide across sources and tiers:
 
-- **Official (tier 1-2).** The brand's own design-system docs, brand and voice
-  guidelines, typography/color/motion pages, and design-engineering blog. These
-  give the canonical principles and most of the stated numbers.
-- **Design writing and interviews (tier 3-4).** The designers' own talks,
-  podcasts, and interviews, plus the studio or foundry story behind a bespoke
-  typeface. These carry the voice, the motion attitude, and the craft ethos the
-  docs leave out.
-- **Third-party breakdowns (tier 3-4).** Independent design-system teardowns and
-  critiques. Do not skip these. Outside observers name the visual language
-  plainly, and they are usually where the concrete numbers that become
-  divergences surface (a documented accent color versus the one you measured).
+- **Official (tier 1-2).** The brand's own design-system docs, brand/voice
+  guidelines, and design-engineering blog: the canonical principles and most
+  stated numbers.
+- **Design writing and interviews (tier 3-4).** The designers' talks, podcasts,
+  and interviews, and the foundry story behind a bespoke typeface: the voice,
+  motion attitude, and craft the docs leave out.
+- **Third-party breakdowns (tier 3-4).** Independent teardowns and critiques. Do
+  not skip these: outsiders name the visual language plainly, and they surface the
+  numbers that become divergences (a documented accent color versus the one you
+  measured).
 
 Fan this out. If you have subagents, run several in parallel, each on a different
 angle (official docs, philosophy and voice, third-party analysis), each returning
@@ -100,13 +96,11 @@ comes back, cross-corroborate, and write one `rationale.json` conforming to the
 contract below. Aim for breadth of source and tier, not a single canonical page.
 Paraphrase; never quote.
 
-**Cost.** This is the only token-heavy part. Everything else (capture,
-reconciliation, the report, the token exports) is deterministic and spends no
-model tokens. Almost all of the Feel's cost is the web research: budget roughly
-100K to 300K tokens for a thorough, well-sourced Feel on one site (a three-agent
-fan-out reading ~20 pages each measured around 130K here, plus synthesis; a quick
-Feel off a couple of sources is a fraction of that). Re-running the report or
-exports afterward costs nothing.
+**Cost.** This is the only token-heavy part; everything else (capture,
+reconciliation, report, exports) is deterministic and free. The web research runs
+roughly 100K to 300K tokens for a thorough Feel on one site (a three-agent fan-out
+measured ~130K), a fraction of that for a quick one. Re-running the report or
+exports afterward is free.
 
 ### 4. Reconcile and merge
 
