@@ -1,22 +1,14 @@
 # examples
 
-These are **authored** motion languages for **invented** brands. They exist to
-show what a well-formed `motion` block looks like and to give the validator
-something to chew on. They are not captured from any real site.
+These are **authored** motion languages for **invented** brands: they show what a
+well-formed `motion` block looks like and give the validator something to chew on.
+Nothing here is captured from a real site, by design (see `understudy-spec.md`
+sections 1 and 14):
 
-This is a deliberate posture, not an accident (see `understudy-spec.md` sections
-1 and 14):
-
-- understudy ships **no** brand-named, extracted artifacts. There is no
-  `airbnb-motion.yaml` here and never will be.
-- The tool extracts only from URLs a user supplies at run time. It hosts no
-  corpus and indexes nothing.
-- Measured timings from a site the user named are uncopyrightable facts. A
-  checked-in pack lifted from a real brand is a different thing, and it is out of
-  bounds.
-
-So the examples are the Hue model: original motion languages, invented for the
-purpose, authored by hand.
+- No brand-named, extracted artifacts ship here, ever.
+- The tool extracts only from URLs a user supplies at run time. No corpus, no index.
+- Measured timings from a site the user named are uncopyrightable facts; a
+  checked-in pack lifted from a real brand is not, and is out of bounds.
 
 ## Adding an example
 

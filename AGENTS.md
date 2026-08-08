@@ -15,7 +15,7 @@ rationale contract, and the never-quantize-a-vibe rule.
   explicitly with `$understudy <url>`, or Codex may select it implicitly when a
   task matches its description. It also ships as an installable Codex plugin
   (`.agents/plugins/marketplace.json` + `plugins/understudy/`): `codex plugin
-  marketplace add <repo>` then `codex plugin add understudy@understudy`.
+  marketplace add Amir-Abushanab/understudy` then `codex plugin add understudy@understudy`.
 - **Claude Code:** the same skill ships as a plugin
   (`.claude-plugin/plugin.json`), invoked as `/understudy <url>`.
 - **Goose:** run `goose run --recipe recipes/understudy.yaml --params
@@ -24,6 +24,6 @@ rationale contract, and the never-quantize-a-vibe rule.
 - **OpenCode and Kilo Code:** both scan `.agents/skills/` by default and
   discover the skill with no extra wiring; ask the agent to learn a URL's brand.
 
-The CLI itself is plain Node and agent-agnostic — `node dist/index.js capture
+The CLI itself is plain Node and agent-agnostic. `node dist/index.js capture
 <url>` runs anywhere, with or without an agent. Build it once with `pnpm install
 && pnpm exec playwright install chromium && pnpm build`.

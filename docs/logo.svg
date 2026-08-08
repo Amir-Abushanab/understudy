@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 452 132" role="img" aria-label="understudy">
+  <!-- Placeholder logo. Self-contained sticker so it reads on light or dark READMEs.
+       Concept: a little study-group of AI mascots inspecting a captured brand. Swap freely. -->
+  <rect x="1.5" y="1.5" width="449" height="129" rx="22" fill="#ffffff" stroke="#e6e9ef" stroke-width="1.5"/>
+
+  <!-- the captured "performance": a page with swatches + a motion curve -->
+  <rect x="66" y="26" width="60" height="54" rx="9" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5"/>
+  <circle cx="78" cy="40" r="4.5" fill="#14b8a6"/>
+  <circle cx="92" cy="40" r="4.5" fill="#8b5cf6"/>
+  <circle cx="106" cy="40" r="4.5" fill="#f59e0b"/>
+  <path d="M74 71 C 86 71, 90 54, 120 54" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- mascot A (teal): holds a magnifier up to the page -->
+  <circle cx="36" cy="66" r="19" fill="#14b8a6"/>
+  <circle cx="30.5" cy="63" r="2.8" fill="#fff"/>
+  <circle cx="41.5" cy="63" r="2.8" fill="#fff"/>
+  <path d="M31 73 q5 4.5 10 0" fill="none" stroke="#0b5f57" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="61" cy="50" r="13" fill="#ffffff" fill-opacity="0.5" stroke="#334155" stroke-width="3"/>
+  <line x1="51" y1="60" x2="45" y2="66" stroke="#334155" stroke-width="3.5" stroke-linecap="round"/>
+
+  <!-- the study group: two more peeking under the page -->
+  <circle cx="82" cy="98" r="13" fill="#8b5cf6"/>
+  <circle cx="78" cy="96" r="2" fill="#fff"/><circle cx="86" cy="96" r="2" fill="#fff"/>
+  <circle cx="104" cy="101" r="10.5" fill="#f59e0b"/>
+  <circle cx="101" cy="99.5" r="1.7" fill="#fff"/><circle cx="107" cy="99.5" r="1.7" fill="#fff"/>
+
+  <!-- wordmark -->
+  <text x="164" y="64" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="38" font-weight="700" fill="#0f172a" letter-spacing="-0.6">understudy</text>
+  <text x="166" y="88" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12.5" fill="#64748b" letter-spacing="1.8">MEASURED BRAND IDENTITY</text>
+</svg>

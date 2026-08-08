@@ -1,306 +1,103 @@
-# understudy
+<p align="center">
+  <img src="docs/logo.svg" width="440" alt="understudy">
+</p>
 
-**Drive a real browser to measure a site's whole brand identity, color,
-typography, spacing, radii, and motion, and emit a `design-model.yaml`.**
+<p align="center"><em>Measure a website's whole brand from the live page, then learn its feel.</em></p>
 
-Point understudy at a URL. It loads the page in a real, instrumented browser and
-reads the brand off the rendered result: the color palette with roles and
-light/dark modes, the type families and scale, the spacing and radius scales, and,
-uniquely, the **motion** — measured, not guessed.
+Point understudy at a URL. It drives a real browser, reads the computed brand off the rendered page (color, type, spacing, radii, and motion), and emits design tokens plus an interactive report. Your agent adds the qualitative feel on top, cited and reconciled against the measurement.
 
-Reading the *computed* values (rather than inferring them from a screenshot) is
-more accurate, especially for CSS-in-JS with hashed class names. And motion is the
-part nobody else measures: static analysis cannot see the stagger intervals, scroll
-choreography, spring parameters, and requestAnimationFrame sequences where premium
-motion lives. understudy instruments the animation APIs and recovers them.
+<p align="center">
+  <img src="docs/report.png" width="820" alt="An understudy brand report: OKLCH palette, a light/dark switch, and a color-format switcher.">
+</p>
 
-The output is a `design-model.yaml` that also splices into
-[Hue](https://github.com/dominikmartn/hue)'s schema (`--merge`), so understudy can
-stand alone or fill Hue's `motion` slot.
+## What it does
 
-## On the name
+- **Measures computed values**, not a screenshot: the palette with roles and light/dark, type families and scale, spacing and radii, and the part others skip — **motion**: staggers, springs, scroll choreography, and requestAnimationFrame sequences.
+- **Emits** a `design-model.yaml`, CSS variables, a Tailwind config, W3C DTCG tokens, and a self-contained interactive HTML report (OKLCH by default with a hex/rgb/hsl switch, a light/dark toggle, playable easing curves, and click-to-copy).
+- **Adds the feel**: your agent writes a cited `rationale.json` from the brand's own design writing, and `understudy context` reconciles its stated numbers against what was measured.
 
-An understudy learns a performance by watching it closely, then performs the part
-as themselves. That is the relationship this tool has to a page it captures: it
-studies the technique, the timing and pacing and choreography, not the artifact. It
-recovers the timing discipline underneath a page, not the page. Apprentices in a
-Renaissance workshop copied the master's drawings before composing anything of
-their own; imitation was the curriculum. That is the reading here.
+## Why motion
 
-Concretely, that framing obligates a few things, and they are load-bearing:
-
-- understudy extracts only from URLs **you** supply. It ships no library of
-  pre-extracted brand packs and hosts no corpus.
-- The repo contains no brand-named artifacts. The bundled examples are invented
-  brands with authored motion languages, never extracted ones.
-- Measured timings are uncopyrightable facts. This tool measures and learns; it
-  does not clone or reproduce.
-
-## Why this is hard (and didn't exist)
-
-- Chrome DevTools' Animations panel does not support `requestAnimationFrame`
-  animations. GSAP, Lenis, and Framer Motion's imperative API all run on rAF. That
-  is exactly where distinctive brand motion lives.
-- The web has no native concept of a grouped animation. Choreography is emergent
-  from many independently scheduled animations. Stagger has to be recovered
-  statistically, not read off.
-- Production sites ship CSS-in-JS with hashed class names, so the source
-  `@keyframes` are often gone. The computed, observed values are the only reliable
-  source.
-
-understudy's answer to all three: **measure the result, not the mechanism.** It
-samples the moving properties frame by frame and reconstructs the timing from the
-samples, so rAF motion is as visible as a CSS transition.
+Chrome's Animations panel can't see `requestAnimationFrame`, and GSAP, Lenis, and Framer Motion all run on it — which is where distinctive motion lives. Static analysis can't read it; screenshots can't either. understudy instruments the animation APIs and samples the moving properties frame by frame, so it recovers timing the others miss.
 
 ## Install
 
-Requires Node 22+ (Node 20 is end-of-life, and the pinned pnpm needs 22.13+).
-Clone and run; there is no account, no API key, no hosted service.
+Node 22+. No account, no API key, no hosted service.
 
 ```bash
-git clone <this-repo> understudy && cd understudy
-pnpm install                       # or: npm install
+git clone https://github.com/Amir-Abushanab/understudy && cd understudy
+pnpm install
 pnpm exec playwright install chromium
 ```
 
-No build step is needed to use it: `pnpm dev` runs straight from the TypeScript
-source. Run `pnpm build` only when you want the compiled `dist/` and the
-`understudy` binary on your PATH.
+`pnpm dev` runs from source; `pnpm build` compiles `dist/` and the `understudy` binary.
 
 ## Quickstart
 
 ```bash
-# capture a site, write a standalone motion block
-pnpm capture https://linear.app -o motion.yaml
-
-# splice directly into an existing Hue design system
-pnpm capture https://linear.app --merge ./skills/mybrand/design-model.yaml
-
-# scroll-heavy site: scroll pass only, longer window
-pnpm capture https://example.com --passes scroll --window 12000
-
-# also emit CSS custom properties
-pnpm capture https://example.com -o motion.yaml --css tokens.css
-
-# also emit an interactive, self-contained HTML brand report
-pnpm capture https://example.com --report report.html
-
-# merge an agent-authored Feel (the qualitative layer) into the model + report
-pnpm capture https://example.com --rationale rationale.json --report report.html
-
-# any other subcommand or flag: pnpm dev <args>
-pnpm dev validate ./motion.yaml
-
-# validate a block (exit code 1 on any error, matching Hue)
-node scripts/validate.mjs ./motion.yaml
+pnpm capture https://linear.app -o model.yaml                                # measure -> design-model.yaml
+pnpm capture https://linear.app --report report.html                         # + interactive HTML report
+pnpm capture https://linear.app --css t.css --tailwind t.config.js --dtcg t.json   # + token formats
+pnpm capture https://linear.app --rationale feel.json --report report.html   # + an authored feel
+pnpm capture https://linear.app --merge ./design-model.yaml                  # splice motion into a Hue model
 ```
 
-`pnpm capture ...` is shorthand for `pnpm dev capture ...`. After `pnpm build`
-(or a global install / `npm link`) the same commands are available as
-`understudy capture ...`.
+## From your coding agent
 
-## Use it from your coding agent
+One canonical `SKILL.md`, discovered by every agent:
 
-understudy is one canonical `SKILL.md` plus a plain-Node CLI. The CLI measures
-the ground truth; your agent learns the feel on top and reconciles it against the
-measurement (`understudy context`).
+| Agent                | Invoke                                                          |
+| -------------------- | -------------------------------------------------------------- |
+| Claude Code          | `/understudy <url>`                                            |
+| Codex                | `$understudy <url>`, or install the bundled plugin             |
+| OpenCode / Kilo Code | auto-discovered; ask it to learn a URL's brand                 |
+| Goose                | `goose run --recipe recipes/understudy.yaml --params url=<url>` |
 
-That split is also the cost story. The measurement half is deterministic and
-spends no model tokens, so the whole token cost is the feel's web research. Budget
-roughly **100K to 300K tokens** for a thorough, well-sourced feel on one site
-(scale it down for a lighter one); re-rendering the report or regenerating exports
-afterward is free. The skill's step 3 breaks this down.
-
-The same skill rides several agents through thin, generated entry points:
-
-| Agent           | Entry point                                     | Invoke                                                            |
-| --------------- | ----------------------------------------------- | ---------------------------------------------------------------- |
-| Claude Code     | `.claude-plugin/plugin.json` + `commands/`      | `/understudy <url>`                                               |
-| Codex (skill)   | `.agents/skills/understudy/`                    | `$understudy <url>`                                              |
-| Codex (plugin)  | `plugins/understudy/` + `.agents/plugins/`      | `codex plugin marketplace add .` then `codex plugin add understudy@understudy` |
-| OpenCode        | `.agents/skills/understudy/`                    | auto-discovered; ask it to learn a URL's brand                   |
-| Kilo Code       | `.agents/skills/understudy/`                    | auto-discovered by default; ask it to learn a URL's brand       |
-| Goose           | `recipes/understudy.yaml`                       | `goose run --recipe recipes/understudy.yaml --params url=<url>`  |
-
-The workflow, the rationale contract, and the never-quantize-a-vibe rule live in
-exactly one place: the root `SKILL.md`. Every discovery copy is generated from it
-by `pnpm sync-skill` and guarded against drift by the test suite. The copies are
-real files, not symlinks, because Codex skips symlinked skill files.
-
-Re-verify all the wiring at once (skill sync, manifest validity, and live
-discovery for whichever agent CLIs are installed, without mutating global state):
-
-```bash
-pnpm verify-agents
-```
+The CLI measures the ground truth deterministically and spends no model tokens. The **feel** is the only token-heavy part: a web-research step that runs roughly **100K–300K tokens** for one site (`SKILL.md` breaks it down). `pnpm verify-agents` re-checks the wiring across all agents at once.
 
 ## What it emits
 
-A `design-model.yaml`: the brand dimensions plus the `motion` block. Real output,
-abbreviated (from stripe.com and react.dev):
+A `design-model.yaml` (abbreviated, from stripe.com):
 
 ```yaml
 name: Stripe
-source: "https://stripe.com"
 primary_mode: light
 confidence: { brand: 0.9, motion: 0.71 }
 colors:
-  light:                       # both `light` and `dark` when a site themes
+  light:                       # both light and dark when a site themes
     background: "#ffffff"
-    surface: "#e5edf5"
-    text1: "#061b31"           # primary, by contrast; text2 is the muted secondary
-    text2: "#50617a"
+    text1: "#061b31"           # primary by contrast; text2 is the muted secondary
     accent: "#533afd"          # from buttons, links, and gradients
-    border: "#e5edf5"
 typography:
   families: [ sohne-var, SourceCodePro ]
-  scale: [ 8, 12, 14, 16, 18, 22, 26, 32, 48 ]
-  weights: [ 300, 400, 500 ]
+  scale: [ 12, 14, 16, 18, 22, 26, 32, 48 ]
   display: { family: sohne-var, size: 48px, weight: 300, line_height: 1.15 }
-  body:    { family: sohne-var, size: 16px, weight: 300, line_height: 1.4 }
-spacing: [ 0, 8, 16, 24, 32, 40, 64, 80, 96 ]   # snapped to the detected base grid
+spacing: [ 0, 8, 16, 24, 32, 48, 64 ]   # snapped to the detected base grid
 radii: [ 0, 2, 4, 6, 8, 16 ]
-shadows: [ "rgba(50, 50, 93, 0.12) 0px 16px 32px 0px", ... ]
 motion:
   meta: { confidence: 0.71, passes: [scroll] }
   primitives:
     duration: { fast: 160, base: 240, slow: 420 }
-    easing:
-      standard: [0, 0, 0.58, 1]              # declared value, cross-verified
-      spring-soft: { stiffness: 200, damping: 12, mass: 1 }
-    stagger: { loose: 120 }
-  semantic:
-    list-reveal:     { duration: base, easing: standard, stagger: loose }
-    scroll-parallax: { coupling: scroll, ratio: 0.35 }
-  personality: { archetype: premium, evidence: [ ... ] }
-  observed:
-    notes: "cross-verified 19 of 33 motions against declared CSS or WAAPI timing"
+    easing: { standard: [0, 0, 0.58, 1] }   # declared, cross-verified
+  personality: { archetype: premium }
 ```
 
-Colors are hex when opaque and `rgba(...)` when translucent (so hairline borders
-keep their alpha). Motion tokens carry provenance: `measured` values use the scalar
-shorthand shown; any other provenance uses the long form
-`{ value: 240, provenance: reconciled }`, and the parser accepts both. Use
-`--motion-only` to emit just the `motion:` block. The motion contract is detailed
-in [`understudy-spec.md`](./understudy-spec.md) section 5.
-
-Beyond the YAML, the same capture also emits **CSS custom properties** (`--css`), a
-**Tailwind `theme.extend`** (`--tailwind`), **W3C DTCG tokens** (`--dtcg`), and a
-self-contained **interactive HTML report** (`--report`). The report is a single
-CSP-safe file (fonts and logo inlined) that renders the measured palette in **OKLCH
-by default with a header switch to hex/rgb/hsl** (the token exports follow the
-switch too), the type scale and styled specimens with font-family links, gradients,
-the motion easings as **playable** curves, a **light/dark switch** when the brand
-themes, and, when an agent has authored one, the cited **Feel** with its
-measured-vs-documented reconciliation.
-
-## How it works
-
-1. **Instrument** (`src/capture/instrument.ts`), injected before any page script.
-   It patches `Element.animate`, watches transition and animation events, and, most
-   importantly, runs a per-frame sampling loop that records the computed transform
-   and opacity of any element whose style is changing. That sampling loop is what
-   sees rAF, GSAP, and Lenis motion.
-2. **Passes** (`src/capture/passes/*`): stepped scroll, hover, and safe clicks, with
-   a settle delay between steps.
-3. **Snapshot** (`src/capture/snapshot.ts`): once motion is frozen, force each
-   color scheme (`emulateMedia`) and read the computed styles of every visible
-   element, so the brand is captured in light and dark.
-4. **Recover** (`src/analyze/*`, `src/brand/*`): cluster start times into staggers,
-   prefer declared easings and fit rAF ones, detect springs; and resolve the color
-   palette by role, the type/spacing/radius scales, weighted by rendered area.
-5. **Emit** (`src/emit/*`): the `design-model.yaml`, CSS custom properties, a
-   Tailwind config, W3C DTCG tokens, an interactive HTML report, or an in-place
-   merge of the motion block into an existing model.
-
-Steps 1-5 are deterministic and spend no model tokens. The qualitative **feel** is a
-separate, agent-authored phase: the agent researches the brand's own design writing,
-writes a cited `rationale.json`, and `understudy context` (or `capture --rationale`)
-reconciles its documented numbers against the measurement before splicing it into
-the model and the report. See "Use it from your coding agent."
-
-## Confidence
-
-`meta.confidence` is mandatory and reports real uncertainty. It is lowered for thin
-sampling, high within-cluster variance, poor bezier fit residuals, rAF sequences
-truncated by the capture window, and pages where motion was suppressed by
-`prefers-reduced-motion`. An honest 0.4 is more useful than a confident 0.9 that is
-wrong, because downstream agents treat these tokens as authoritative. If you see a
-low number, the measurement was genuinely uncertain; do not paper over it.
-
-## The rAF caveat, stated plainly
-
-understudy measures the observed result of motion, not the code that produced it.
-That has limits worth knowing:
-
-- Motion shorter than a couple of frames may be missed by the sampler.
-- Motion that never runs during capture (off-screen, behind auth, or gated on an
-  interaction the safe passes will not perform) is not measured. Such limits are
-  recorded in `observed.notes`.
-- The recovered easing is a best fit to what was sampled, reported with a residual.
-  When the residual is poor and the motion overshoots, a spring is fit instead; when
-  it overshoots but fits nothing well, confidence drops rather than a shape being
-  invented.
+Colors are hex when opaque, `rgba(...)` when translucent. `--motion-only` emits just the `motion:` block. Validate any output with `node scripts/validate.mjs model.yaml` (exit 1 on error). The full contract is in [`understudy-spec.md`](./understudy-spec.md).
 
 ## Capture safety
 
-The passes drive a real browser against a real site, so they are constrained
-(`src/capture/safety.ts`):
+The passes drive a real browser, so they are constrained:
 
-- **Never submit forms.** Anything inside a `<form>`, and submit or reset controls,
-  is skipped.
-- **Never click destructive or transactional text** (buy, delete, checkout,
-  subscribe, sign up, confirm, and similar).
-- **Never authenticate.** No credential entry, ever. If a page needs login,
-  understudy captures what is public and records the limitation.
-- **Stay on-origin.** Top-level navigations away from the target origin are
-  cancelled.
-- **Respect `robots.txt`** and send a truthful, identifiable user-agent.
-- **One page at a time**, with a settle delay between passes.
-- **`prefers-reduced-motion` is forced to `no-preference` during capture.** This is
-  a deliberate choice: the goal is to measure the brand's real motion. It is
-  disclosed here because it is the one place understudy asks the page to behave as
-  if the visitor had not opted out.
+- Never submit forms, never click destructive or transactional controls, never authenticate.
+- Stay on the target origin; respect `robots.txt`; send a truthful, identifiable user-agent.
+- One page at a time. `prefers-reduced-motion` is forced to `no-preference` so the real motion is measurable — the one place understudy overrides the page.
 
-The extraction is user-initiated against a URL you name. There is no crawler and no
-pre-indexed corpus, by design.
+Extraction is user-initiated against a URL you name. No crawler, no corpus.
 
-## Scope
+## Confidence and limits
 
-In scope: instrumented capture of `Element.animate`, requestAnimationFrame, CSS
-transitions and animations; scroll, hover, and click passes; stagger recovery;
-easing and spring fitting; the full brand extraction (color, type, spacing, radii);
-the emit targets above (`design-model.yaml`, CSS, Tailwind, W3C DTCG, and the visual
-HTML report); and the qualitative **feel** — an agent authors a cited
-`rationale.json` from the brand's design writing, and `understudy context` (or
-`capture --rationale`) reconciles its documented numbers against the measurement
-(see "Use it from your coding agent").
+`meta.confidence` reports real uncertainty: thin sampling, poor bezier fit, rAF truncated by the capture window, or motion that never ran during capture (off-screen, behind auth, or gated on an interaction the safe passes won't perform). A low number means the measurement was genuinely uncertain — treat it as authoritative, not a value to smooth over.
 
-Out of scope: generating or applying components (downstream skills do that), and
-video, Lottie, or WebGL/canvas motion. Deferred to a later version: shadcn registry
-distribution, specified so this version does not foreclose it.
+## Name and license
 
-## Validate
-
-```bash
-node scripts/validate.mjs ./motion.yaml    # or a tokens.css file
-```
-
-Exit code 1 on any error, 0 otherwise, matching Hue's convention. Checks include
-semantic references resolving to real primitives, no raw numbers where a token name
-belongs, `meta.confidence` present and in range, durations within human bounds, no
-em-dashes in prose, provenance on every token, and no undefined `var(--token)`
-usages in generated CSS.
-
-## A note on the name's availability
-
-The bare npm name `understudy` is already taken by an unrelated package, so a
-published build would ship scoped (for example `@yourorg/understudy`) while keeping
-the `understudy` command name. Nothing here is published; this is a clone-and-run
-tool. Confirm a domain (`.motion` is not a public TLD; `understudy.dev` or
-`understudy.design` are the realistic targets) and search USPTO/EUIPO for live marks
-before putting the name on anything commercial.
-
-## License
-
-MIT. Chosen for upstream compatibility with Hue.
+An understudy learns a performance by watching, then performs as itself: this tool studies a page's timing, not its artifact, and extracts only from URLs you supply. The bare npm name is taken, so a published build ships scoped (`@yourorg/understudy`). MIT, for upstream compatibility with [Hue](https://github.com/dominikmartn/hue).
