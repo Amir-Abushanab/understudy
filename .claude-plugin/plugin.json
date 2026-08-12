@@ -2,6 +2,10 @@
   "name": "understudy",
   "description": "Measure a website's whole brand identity (color, typography, spacing, motion) from the live page, then learn its feel. The bundled tool measures ground truth deterministically; the assistant synthesizes the qualitative rationale on top, reconciled against the measurement.",
   "version": "0.3.0",
+  "author": {
+    "name": "Amir Abushanab",
+    "url": "https://github.com/Amir-Abushanab"
+  },
   "keywords": ["brand", "design-tokens", "design-system", "motion", "playwright"],
   "license": "MIT"
 }

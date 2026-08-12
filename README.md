@@ -53,6 +53,8 @@ One canonical `SKILL.md`, discovered by every agent:
 | OpenCode / Kilo Code | auto-discovered; ask it to learn a URL's brand                 |
 | Goose                | `goose run --recipe recipes/understudy.yaml --params url=<url>` |
 
+**Install as a plugin** from this repo — Claude Code: `/plugin marketplace add Amir-Abushanab/understudy` then `/plugin install understudy@understudy`. Codex: `codex plugin marketplace add Amir-Abushanab/understudy` then `codex plugin add understudy@understudy`. OpenCode, Kilo, and Goose read the skill straight from the cloned repo.
+
 The CLI measures the ground truth deterministically and spends no model tokens. The **feel** is the only token-heavy part: a web-research step that runs roughly **100K–300K tokens** for one site (`SKILL.md` breaks it down). `pnpm verify-agents` re-checks the wiring across all agents at once.
 
 ## What it emits
@@ -100,4 +102,4 @@ Extraction is user-initiated against a URL you name. No crawler, no corpus.
 
 ## Name and license
 
-An understudy learns a performance by watching, then performs as itself: this tool studies a page's timing, not its artifact, and extracts only from URLs you supply. The bare npm name is taken, so a published build ships scoped (`@yourorg/understudy`). MIT, for upstream compatibility with [Hue](https://github.com/dominikmartn/hue).
+An understudy learns a performance by watching, then performs as itself: this tool studies a page's timing, not its artifact, and extracts only from URLs you supply. The bare npm name is taken, so it ships scoped as `@amir-abushanab/understudy` (confirm the scope matches your npm account before publishing). MIT, for upstream compatibility with [Hue](https://github.com/dominikmartn/hue).
