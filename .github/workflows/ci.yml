@@ -36,6 +36,12 @@ jobs:
       - name: Test
         run: node --test "dist/**/*.test.js"
 
+      - name: Lint plugin manifests
+        run: node scripts/validate-plugins.mjs
+
+      - name: Lint the npm package
+        run: pnpm exec publint
+
       - name: Self-check the validator on a fixture capture
         run: |
           node dist/index.js capture "file://$PWD/fixtures/stagger-120ms/index.html" \

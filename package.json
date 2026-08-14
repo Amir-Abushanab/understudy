@@ -55,7 +55,9 @@
     "validate": "node scripts/validate.mjs",
     "verify-agents": "bash scripts/verify-agents.sh",
     "stress": "node scripts/stress-capture.mjs",
+    "lint:plugins": "node scripts/validate-plugins.mjs",
     "lint:package": "publint",
+    "lint": "pnpm run lint:plugins && pnpm run lint:package",
     "prepublishOnly": "publint"
   },
   "dependencies": {
