@@ -22,7 +22,7 @@ Point it at a URL. understudy opens the page in a real browser, reads the brand 
 
 ## Install
 
-Node 22+. No account, no API key.
+Node 22+.
 
 ```bash
 git clone https://github.com/Amir-Abushanab/understudy && cd understudy
@@ -86,10 +86,6 @@ codex plugin add understudy@understudy
 
 The measuring is deterministic and costs no model tokens. The feel is the only token-heavy step: roughly **100K–300K tokens** of web research per site (`SKILL.md` has the breakdown). `pnpm verify-agents` checks the wiring for every agent at once.
 
-## Safety
-
-The passes are careful: no forms, no destructive or transactional clicks, no auth. understudy stays on-origin, respects `robots.txt`, and sends an honest user-agent. It does force `prefers-reduced-motion: no-preference` while capturing so it can measure the real motion, which is the one thing it overrides. Extraction only runs against a URL you name. There's no crawler and no stored corpus.
-
 ## Confidence
 
 Every capture reports how sure it is. A low `confidence` means the measurement was genuinely shaky: thin sampling, a poor curve fit, or motion that never ran during the capture window. Trust the number instead of smoothing it over.
@@ -98,4 +94,4 @@ Every capture reports how sure it is. A low `confidence` means the measurement w
 
 An understudy learns a performance by watching, then plays the part as themselves. That's the idea here: it studies a page's timing, not its artifact, and only from URLs you supply. MIT.
 
-Thanks to [Hue](https://github.com/dominikmartn/hue), whose schema this builds on. `pnpm capture <url> --merge model.yaml` splices the measured motion straight into a Hue design system.
+Thanks to [Hue](https://github.com/dominikmartn/hue), whose schema this builds on.
