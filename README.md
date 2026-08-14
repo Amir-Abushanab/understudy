@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/logo.svg" width="440" alt="understudy">
+  <img src="https://raw.githubusercontent.com/Amir-Abushanab/understudy/master/docs/logo.svg" width="440" alt="understudy">
 </p>
 
 <p align="center"><em>Measure a website's whole brand from the live page, then learn its feel.</em></p>
@@ -7,7 +7,7 @@
 Point understudy at a URL. It drives a real browser, reads the computed brand off the rendered page (color, type, spacing, radii, and motion), and emits design tokens plus an interactive report. Your agent adds the qualitative feel on top, cited and reconciled against the measurement.
 
 <p align="center">
-  <img src="docs/report.png" width="820" alt="An understudy brand report: OKLCH palette, a light/dark switch, and a color-format switcher.">
+  <img src="https://raw.githubusercontent.com/Amir-Abushanab/understudy/master/docs/report.png" width="820" alt="An understudy brand report: OKLCH palette, a light/dark switch, and a color-format switcher.">
 </p>
 
 ## What it does
