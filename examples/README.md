@@ -5,10 +5,14 @@ well-formed `motion` block looks like and give the validator something to chew o
 Nothing here is captured from a real site, by design (see `understudy-spec.md`
 sections 1 and 14):
 
-- No brand-named, extracted artifacts ship here, ever.
-- The tool extracts only from URLs a user supplies at run time. No corpus, no index.
-- Measured timings from a site the user named are uncopyrightable facts; a
-  checked-in pack lifted from a real brand is not, and is out of bounds.
+- Everything in `examples/` is an invented brand. No extracted, brand-named
+  artifact ships here.
+- The tool extracts only from URLs a user supplies at run time. No corpus, no
+  index: understudy ships no library of extracted brand packs.
+- Measured values from a public page are uncopyrightable facts, so a single
+  illustrative demo (`docs/example-report.html`, captured live from github.com)
+  is fine. A collection of extracted brand packs offered as reusable assets is
+  not, and stays out of bounds.
 
 ## Adding an example
 

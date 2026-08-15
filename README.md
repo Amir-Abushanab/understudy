@@ -11,8 +11,9 @@
 Point it at a URL. understudy opens the page in a real browser, reads the brand off what actually rendered, and writes out design tokens and an interactive report. Your coding agent adds the qualitative feel on top, cited and checked against the measurements.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Amir-Abushanab/understudy/master/docs/report.png" width="820" alt="An understudy brand report: OKLCH palette, light/dark switch, and a color-format switcher.">
+  <a href="https://htmlpreview.github.io/?https://raw.githubusercontent.com/Amir-Abushanab/understudy/master/docs/example-report.html"><img src="https://raw.githubusercontent.com/Amir-Abushanab/understudy/master/docs/report.png" width="820" alt="An understudy brand report: OKLCH palette, light/dark switch, and a color-format switcher."></a>
 </p>
+<p align="center"><a href="https://htmlpreview.github.io/?https://raw.githubusercontent.com/Amir-Abushanab/understudy/master/docs/example-report.html">Open a full report</a> (measured from github.com)</p>
 
 ## What you get
 
@@ -84,7 +85,9 @@ codex plugin marketplace add Amir-Abushanab/understudy
 codex plugin add understudy@understudy
 ```
 
-The measuring is deterministic and costs no model tokens. The feel is the only token-heavy step: roughly **100K–300K tokens** of web research per site (`SKILL.md` has the breakdown). `pnpm verify-agents` checks the wiring for every agent at once.
+The feel is where the agent does real homework. It reads widely: the brand's own design docs and engineering blog, designer talks, podcasts, and interviews, and independent teardowns of the design system. It cites what it used and reconciles any stated numbers against the measurement, so the feel is triangulated across sources rather than taken from one page.
+
+The measuring is deterministic and costs no model tokens. That research is the only token-heavy step: roughly **100K–300K tokens** per site (`SKILL.md` has the breakdown). `pnpm verify-agents` checks the wiring for every agent at once.
 
 ## Confidence
 
