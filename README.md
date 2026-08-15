@@ -11,9 +11,9 @@
 Point it at a URL. understudy opens the page in a real browser, reads the brand off what actually rendered, and writes out design tokens and an interactive report. Your coding agent adds the qualitative feel on top, cited and checked against the measurements.
 
 <p align="center">
-  <a href="https://htmlpreview.github.io/?https://raw.githubusercontent.com/Amir-Abushanab/understudy/master/docs/example-report.html"><img src="https://raw.githubusercontent.com/Amir-Abushanab/understudy/master/docs/report.png" width="820" alt="An understudy brand report: OKLCH palette, light/dark switch, and a color-format switcher."></a>
+  <a href="https://amir-abushanab.github.io/understudy/example-report.html"><img src="https://raw.githubusercontent.com/Amir-Abushanab/understudy/master/docs/report.png" width="820" alt="An understudy brand report: OKLCH palette, light/dark switch, and a color-format switcher."></a>
 </p>
-<p align="center"><a href="https://htmlpreview.github.io/?https://raw.githubusercontent.com/Amir-Abushanab/understudy/master/docs/example-report.html">Open a full report</a> (measured from github.com, with an authored feel and its sources)</p>
+<p align="center"><a href="https://amir-abushanab.github.io/understudy/example-report.html">Open a full report</a> (measured from github.com, with an authored feel and its sources)</p>
 
 ## What you get
 
