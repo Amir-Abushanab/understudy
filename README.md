@@ -13,7 +13,7 @@ Point it at a URL. understudy opens the page in a real browser, reads the brand 
 <p align="center">
   <a href="https://htmlpreview.github.io/?https://raw.githubusercontent.com/Amir-Abushanab/understudy/master/docs/example-report.html"><img src="https://raw.githubusercontent.com/Amir-Abushanab/understudy/master/docs/report.png" width="820" alt="An understudy brand report: OKLCH palette, light/dark switch, and a color-format switcher."></a>
 </p>
-<p align="center"><a href="https://htmlpreview.github.io/?https://raw.githubusercontent.com/Amir-Abushanab/understudy/master/docs/example-report.html">Open a full report</a> (measured from github.com)</p>
+<p align="center"><a href="https://htmlpreview.github.io/?https://raw.githubusercontent.com/Amir-Abushanab/understudy/master/docs/example-report.html">Open a full report</a> (measured from github.com, with an authored feel and its sources)</p>
 
 ## What you get
 

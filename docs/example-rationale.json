@@ -1,0 +1,60 @@
+{
+  "summary": "GitHub is built by and for developers, and it wants to feel that way: technically fluent, quietly confident, and unafraid to be nerdy, treating precision and craft as things to make beautiful rather than hide. The brand leads with GitHub Green over neutrals, while the product itself runs on a reserved, functional palette where color mostly speaks when a state changes. Its own variable typeface, Mona Sans, carries the identity, set on a compact type ramp and a 4px spacing rhythm, and motion is kept short and purposeful, capped so nothing lingers. The voice is plain and human, clear without being cold, with the hype and exclamation marks deliberately stripped out. Underneath sits a developer-first empathy and a lightly retrofuturist, open-source streak, embodied by the optimistic and endlessly remixable Octocat.",
+  "archetype": "earnest",
+  "voice": "Plain, human, and technically literate. Clear without being cold and conversational without jargon, aimed at roughly a seventh-grade reading level. It reserves emphasis instead of shouting, and keeps humor away from anything that failed.",
+  "sources": [
+    { "url": "https://brand.github.com/brand-identity/attributes", "title": "GitHub Brand Toolkit: Brand attributes", "tier": 2, "fetchedAt": "2026-08-06" },
+    { "url": "https://brand.github.com/motion/principles", "title": "GitHub Brand Toolkit: Motion principles", "tier": 2, "fetchedAt": "2026-08-06" },
+    { "url": "https://brand.github.com/foundations/typography", "title": "GitHub Brand Toolkit: Typography", "tier": 2, "fetchedAt": "2026-08-06" },
+    { "url": "https://brand.github.com/foundations/color", "title": "GitHub Brand Toolkit: Color", "tier": 2, "fetchedAt": "2026-08-06" },
+    { "url": "https://primer.style/foundations/color", "title": "Primer: Color", "tier": 2, "fetchedAt": "2026-08-06" },
+    { "url": "https://primer.style/product/primitives/typography/", "title": "Primer Primitives: Typography", "tier": 1, "fetchedAt": "2026-08-06" },
+    { "url": "https://github.com/primer/primitives", "title": "primer/primitives design tokens", "tier": 1, "fetchedAt": "2026-08-06" },
+    { "url": "https://primer.style/product/getting-started/foundations/content/", "title": "Primer: Content (voice and tone)", "tier": 2, "fetchedAt": "2026-08-06" },
+    { "url": "https://primer.github.io/design/guides/introduction/", "title": "Primer: Design principles", "tier": 2, "fetchedAt": "2026-08-06" },
+    { "url": "https://github.blog/news-insights/company-news/introducing-mona-sans-and-hubot-sans/", "title": "Introducing Mona Sans and Hubot Sans (GitHub Blog)", "tier": 2, "fetchedAt": "2026-08-06" },
+    { "url": "https://www.designsystems.one/design-systems/primer", "title": "Primer breakdown (DesignSystems.one)", "tier": 3, "fetchedAt": "2026-08-06" },
+    { "url": "https://pimpmytype.com/font/mona-hubot-sans/", "title": "Mona and Hubot Sans review (Pimp my Type)", "tier": 3, "fetchedAt": "2026-08-06" },
+    { "url": "https://tonsky.me/blog/github-redesign/", "title": "Redesigning GitHub's repository page (Tonsky)", "tier": 3, "fetchedAt": "2026-08-06" },
+    { "url": "https://www.heavybit.com/library/podcasts/open-source-ready/ep-29-building-ascii-motion-with-cameron-foxly", "title": "Open Source Ready podcast: Cameron Foxly, GitHub", "tier": 4, "fetchedAt": "2026-08-06" },
+    { "url": "https://cameronmcefee.com/work/the-octocat/", "title": "The Octocat (Cameron McEfee)", "tier": 4, "fetchedAt": "2026-08-06" },
+    { "url": "https://github.com/orgs/community/discussions/149932", "title": "GitHub dark-mode contrast critique (Community)", "tier": 4, "fetchedAt": "2026-08-06" }
+  ],
+  "principles": [
+    { "claim": "GitHub steers design and writing by five brand attributes: nerdy, confident, authentic, imaginative, and empathetic.", "source": 0, "quantified": true },
+    { "claim": "Being nerdy is a virtue here. It leans into technical depth and makes complexity beautiful through careful hierarchy rather than sanding it away.", "source": 0, "quantified": false },
+    { "claim": "GitHub Green is the hero color that usually leads brand work, grounded by neutrals, black, and white, with other accents kept sparse.", "source": 3, "quantified": true },
+    { "claim": "In the product, color is functional and reserved: an accent blue, a danger red, a success green, and a purple done state that mostly speak when a state changes.", "source": 4, "quantified": true },
+    { "claim": "Type is carried by Mona Sans, GitHub's own variable superfamily with weight, width, and slant axes, drawn from industrial-era grotesques and given away under an open font license.", "source": 9, "quantified": true },
+    { "claim": "The product type ramp is compact, roughly 12 to 40px from caption to display, held to four weights, with line-heights snapped to the 4px grid.", "source": 5, "quantified": true },
+    { "claim": "Spacing runs on a mostly 4px rhythm with 8px as the default step, and corner radii stay restrained at 3, 6, and 12px plus a full pill value.", "source": 6, "quantified": true },
+    { "claim": "Motion is budgeted: normal interactions stay at or under 300ms and never pass 500ms, with a decelerating ease-out the recommended default for entrances.", "source": 6, "quantified": true },
+    { "claim": "Every animation has to earn its place by facilitating, engaging, or making a moment land, and canned bounce-and-slide presets are refused.", "source": 1, "quantified": true },
+    { "claim": "The writing voice is plain and human, clear without being cold, aimed at about a seventh-grade reading level, with no exclamation marks, hype words, or emojis.", "source": 7, "quantified": true },
+    { "claim": "Humor is kept out of errors and failures, and messages never blame the user.", "source": 7, "quantified": false },
+    { "claim": "Primer's job is to remove friction between the person and the software, with accessibility designed in from the start rather than retrofitted.", "source": 8, "quantified": false },
+    { "claim": "GitHub wanted the things you touch to feel innately GitHub, yet deliberately open-sourced that identity so it would not be the only one able to use it.", "source": 9, "quantified": false },
+    { "claim": "The Octocat is built to represent developers as optimistic and fallible and to be remixed freely, communicating through action rather than speech.", "source": 14, "quantified": false },
+    { "claim": "A GitHub brand designer frames taste as the durable thing a designer is hired for, and delight as tiny technical touches like a color shifting bluer as it moves from its source.", "source": 13, "quantified": false },
+    { "claim": "Outside reviewers read the system as developer-native restraint that suits code-heavy tools more than consumer marketing.", "source": 10, "quantified": false },
+    { "claim": "Type reviewers describe Mona Sans as a friendly squircle grotesque, neither fully round nor angular, credible enough to be adopted well beyond GitHub.", "source": 11, "quantified": false },
+    { "claim": "Critics push back on the product UI for trading information density for whitespace and for a muddy size hierarchy, a real tension with the stated efficiency goal.", "source": 12, "quantified": false }
+  ],
+  "constraints": [
+    "No exclamation marks, no hype words like easy, quick, or just, no emojis, and no click-here calls to action.",
+    "No humor in error, loading, or failure states, and never blame the user.",
+    "No canned, out-of-the-box motion presets unless the movement genuinely has character.",
+    "Never lean on color as the only signal of emphasis or state.",
+    "Do not blow the motion budget: normal UI stays at or under 300ms and never over 500ms.",
+    "Keep accents sparse, let GitHub Green lead brand work, and let neutrals ground the page."
+  ],
+  "documented": [
+    { "token": "duration.fast", "value": 200, "source": 6 },
+    { "token": "duration.base", "value": 300, "source": 6 },
+    { "token": "font.display.size", "value": 40, "source": 5 }
+  ],
+  "divergences": [
+    { "token": "colors.accent", "documented": "GitHub Green #0FBF3E (brand hero)", "measured": "a functional blue", "note": "The brand toolkit names GitHub Green the hero color that should lead brand work, but the product homepage measures a functional blue accent, matching Primer's product color system rather than the marketing green. Brand green and product blue are governed separately.", "resolution": "unresolved" },
+    { "token": "motion.duration cap", "documented": "300ms target, 500ms hard cap (Primer product)", "measured": "a longer homepage motion above that cap", "note": "Primer caps product UI motion at 300ms and forbids going past 500ms, but the marketing homepage runs a longer entrance animation. Brand and marketing motion sit outside the product token budget.", "resolution": "unresolved" }
+  ]
+}
