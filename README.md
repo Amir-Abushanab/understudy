@@ -30,6 +30,12 @@ git clone https://github.com/Amir-Abushanab/understudy && cd understudy
 pnpm install && pnpm exec playwright install chromium
 ```
 
+Or skip the clone and run the CLI from npm (first run needs Chromium: `pnpm dlx playwright install chromium`):
+
+```bash
+pnpm dlx @amir-abushanab/understudy capture https://linear.app -o model.yaml
+```
+
 ## Use it
 
 ```bash
@@ -73,16 +79,25 @@ understudy is one `SKILL.md` that every agent reads the same way:
 | OpenCode / Kilo Code | auto-discovered; ask it to learn a URL's brand                 |
 | Goose                | `goose run --recipe recipes/understudy.yaml --params url=<url>` |
 
-Install it as a plugin straight from this repo:
+Install it as a plugin:
 
 ```bash
-# Claude Code
-/plugin marketplace add Amir-Abushanab/understudy
-/plugin install understudy@understudy
+# Claude Code — via the amir-skills marketplace
+/plugin marketplace add Amir-Abushanab/skills
+/plugin install understudy@amir-skills
 
 # Codex
 codex plugin marketplace add Amir-Abushanab/understudy
 codex plugin add understudy@understudy
+
+# Any agent (Cursor, OpenCode, …) — via the skills CLI
+npx skills add Amir-Abushanab/understudy
+```
+
+Adding this repo directly as a marketplace also works: `/plugin marketplace add Amir-Abushanab/understudy`, then `/plugin install understudy@understudy`. To hack on the skill locally, symlink the repo and it loads as a local skill:
+
+```bash
+ln -s "$PWD" ~/.claude/skills/understudy
 ```
 
 The feel is where the agent does real homework. It reads widely: the brand's own design docs and engineering blog, designer talks, podcasts, and interviews, and independent teardowns of the design system. It cites what it used and reconciles any stated numbers against the measurement, so the feel is triangulated across sources rather than taken from one page.
