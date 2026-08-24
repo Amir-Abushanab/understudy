@@ -22,7 +22,8 @@
   "homepage": "https://github.com/Amir-Abushanab/understudy#readme",
   "bugs": "https://github.com/Amir-Abushanab/understudy/issues",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "engines": {
     "node": ">=22"
