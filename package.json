@@ -1,5 +1,5 @@
 {
-  "name": "@amir-abushanab/understudy",
+  "name": "@amabush/understudy",
   "version": "0.3.0",
   "description": "An agent-agnostic skill (Claude Code + Codex): the bundled CLI measures a site's whole brand identity (color, typography, spacing, radii, motion) from the live page; the agent learns its feel on top, reconciled against the measurement.",
   "keywords": [

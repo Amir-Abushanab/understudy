@@ -33,7 +33,7 @@ pnpm install && pnpm exec playwright install chromium
 Or skip the clone and run the CLI from npm (first run needs Chromium: `pnpm dlx playwright install chromium`):
 
 ```bash
-pnpm dlx @amir-abushanab/understudy capture https://linear.app -o model.yaml
+pnpm dlx @amabush/understudy capture https://linear.app -o model.yaml
 ```
 
 ## Use it
